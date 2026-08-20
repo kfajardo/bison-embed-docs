@@ -1,0 +1,249 @@
+---
+/**
+ * The launch flow as a looping five-stage sequence.
+ *
+ * Topology mirrors the real relationship: the iframe is nested inside your
+ * app, not a peer of it, and Bison Services is one boundary rather than a
+ * single endpoint. Stage 5 shows the iframe talking to those services over
+ * several channels at once.
+ *
+ * Node icons live in public/flow/. A missing image degrades to a labelled
+ * node rather than an empty gap.
+ */
+
+const STAGES = [
+	{
+		n: 1,
+		lead: 'Your server asks Bison for a launch URL',
+		sub: 'The three credentials never leave your backend.',
+	},
+	{
+		n: 2,
+		lead: 'Bison returns a short-lived URL',
+		sub: 'It carries a launch code that works once.',
+	},
+	{
+		n: 3,
+		lead: 'Your server hands the URL to your page',
+		sub: 'Your page sets it as the iframe source.',
+	},
+	{
+		n: 4,
+		lead: 'The iframe redeems the launch code',
+		sub: 'Bison and the iframe finish the handshake alone.',
+	},
+	{
+		n: 5,
+		lead: 'From here, the iframe runs the whole product',
+		sub: 'Payments, JIB, reports and settings talk to Bison directly. None of it is yours to build.',
+	},
+];
+const STAGE5_DURATION = 1200;
+const STEP_DURATION = 3300;
+
+const splitWords = (text: string, offset = 0) => {
+	let cursor = offset;
+	return text.split(' ').map((word, index) => {
+		const space = index ? cursor : null;
+		const start = cursor + (index ? 1 : 0);
+		cursor = start + word.length;
+		return { word, start, space };
+	});
+};
+---
+
+<figure class="bison-flow" data-bison-flow style={`--bison-step-duration:${STEP_DURATION}ms;--bison-stage5-duration:${STAGE5_DURATION}ms`}>
+	<div class="bison-flow__stage" aria-hidden="true">
+		<div class="bison-flow__narration">
+			{
+				STAGES.map((s) => (
+					<p class="bison-flow__line" data-line={s.n}>
+						<b>
+							{splitWords(s.lead).map(({ word, start, space }) => (
+								<span class="bison-flow__word">
+									{space !== null && <span class="bison-flow__char" style={`--char:${space}`}>{'\u00a0'}</span>}
+									{Array.from(word).map((char, index) => <span class="bison-flow__char" style={`--char:${start + index}`}>{char}</span>)}
+								</span>
+							))}
+						</b>
+						<span>
+							{splitWords(s.sub, s.lead.length + 6).map(({ word, start, space }) => (
+								<span class="bison-flow__word">
+									{space !== null && <span class="bison-flow__char" style={`--char:${space}`}>{'\u00a0'}</span>}
+									{Array.from(word).map((char, index) => <span class="bison-flow__char" style={`--char:${start + index}`}>{char}</span>)}
+								</span>
+							))}
+						</span>
+					</p>
+				))
+			}
+		</div>
+	</div>
+
+	<svg viewBox="12 8 636 376" role="img" aria-labelledby="bison-flow-title">
+		<title id="bison-flow-title">
+			Your server requests a launch URL from Bison Services and receives a short-lived URL. Your
+			page sets that URL as the source of an iframe nested inside your app. The iframe then
+			redeems the launch code and communicates with Bison Services directly.
+		</title>
+
+		<defs>
+			<marker id="bison-arrow" viewBox="0 0 8 8" refX="4" refY="4" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse">
+				<circle cx="4" cy="4" r="2.8" fill="context-stroke" />
+			</marker>
+			<marker id="bison-secure-arrow" viewBox="0 0 8 8" refX="4" refY="4" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse">
+				<circle cx="4" cy="4" r="2.8" fill="#40916b" />
+			</marker>
+			<linearGradient id="bison-spectrum" gradientUnits="userSpaceOnUse" x1="320" y1="0" x2="620" y2="0">
+				<stop offset="0%" stop-color="#40916b"></stop>
+				<stop offset="34%" stop-color="#3c83f6"></stop>
+				<stop offset="68%" stop-color="#7c3aed"></stop>
+				<stop offset="100%" stop-color="#40916b"></stop>
+				<animate attributeName="x1" values="260;380" dur={`${STAGE5_DURATION}ms`} repeatCount="indefinite"></animate>
+				<animate attributeName="x2" values="560;680" dur={`${STAGE5_DURATION}ms`} repeatCount="indefinite"></animate>
+			</linearGradient>
+		</defs>
+
+		<!-- ── Bison Services: one boundary, not one endpoint ── -->
+		<g class="bison-flow__zone" data-zone="bison">
+			<rect class="bison-flow__zonebox" x="352" y="20" width="284" height="146" rx="12" />
+			<text class="bison-flow__zonename" x="494" y="44" text-anchor="middle">Bison Services</text>
+			<image href="/flow/bison-api.webp" x="450" y="58" width="88" height="88" class="bison-flow__icon" />
+		</g>
+
+		<!-- ── Your App: the iframe lives inside it ── -->
+		<g class="bison-flow__zone" data-zone="app">
+			<rect class="bison-flow__zonebox" x="140" y="212" width="352" height="160" rx="12" />
+			<text class="bison-flow__zonename" x="164" y="236" text-anchor="start">Your app</text>
+			<image href="/flow/page.png" x="162" y="256" width="72" height="72" class="bison-flow__icon" />
+			<text class="bison-flow__sub" x="198" y="346" text-anchor="middle">your page</text>
+
+			<!-- the embed, nested -->
+			<g class="bison-flow__iframe">
+				<rect class="bison-flow__embed" x="256" y="244" width="220" height="116" rx="10" data-ring="iframe" />
+				<image href="/flow/iframe.webp" x="332" y="252" width="68" height="68" class="bison-flow__icon" />
+				<text class="bison-flow__embedname" x="366" y="336">&lt;iframe /&gt;</text>
+				<text class="bison-flow__sub" x="366" y="352" text-anchor="middle">redeems the code</text>
+			</g>
+		</g>
+
+		<!-- ── Your server ── -->
+		<g class="bison-flow__zone" data-zone="server">
+			<image href="/flow/server.png" x="26" y="80" width="84" height="84" class="bison-flow__icon" />
+			<text class="bison-flow__name" x="68" y="182" text-anchor="middle">Your server</text>
+			<text class="bison-flow__sub" x="68" y="198" text-anchor="middle">holds credentials</text>
+		</g>
+
+		<!-- ── resting wires ── -->
+		<!-- 1 + 2: orthogonal request and response routes with rounded elbows -->
+		<path class="bison-flow__wire" d="M68 80 V56 Q68 44 80 44 H352" marker-end="url(#bison-arrow)" />
+		<path class="bison-flow__wire" d="M352 122 H110" marker-end="url(#bison-arrow)" />
+		<!-- 3: server down into your app -->
+		<path class="bison-flow__wire" d="M68 204 V272 Q68 292 88 292 H162" marker-end="url(#bison-arrow)" />
+		<!-- 4 + 5: the iframe's own channels up to Bison -->
+		<path class="bison-flow__wire bison-flow__iframe-wire" d="M512 166 V246 Q512 266 492 266 H476" marker-end="url(#bison-arrow)" />
+		<path class="bison-flow__wire bison-flow__iframe-wire" d="M476 302 H548 Q568 302 568 282 V166" marker-end="url(#bison-arrow)" />
+		<path class="bison-flow__wire bison-flow__iframe-wire" d="M624 166 V318 Q624 338 604 338 H476" marker-end="url(#bison-arrow)" />
+
+		<!-- ── animated traces ── -->
+		<path class="bison-flow__trace" data-trace data-stage="1" d="M68 80 V56 Q68 44 80 44 H352" />
+		<path class="bison-flow__trace" data-trace data-stage="2" d="M352 122 H110" />
+		<path class="bison-flow__trace" data-trace data-stage="3" d="M68 204 V272 Q68 292 88 292 H162" />
+		<path class="bison-flow__trace" data-trace data-stage="4" d="M476 302 H548 Q568 302 568 282 V166" />
+
+		<circle class="bison-flow__packet" data-stage="1" r="4.5" style="offset-path:path('M68 80 V56 Q68 44 80 44 H352')"></circle>
+		<circle class="bison-flow__packet" data-stage="2" r="4.5" style="offset-path:path('M352 122 H110')"></circle>
+		<circle class="bison-flow__packet" data-stage="3" r="4.5" style="offset-path:path('M68 204 V272 Q68 292 88 292 H162')"></circle>
+		<circle class="bison-flow__packet" data-stage="4" r="4.5" style="offset-path:path('M476 302 H548 Q568 302 568 282 V166')"></circle>
+
+		<!-- ── stage 5: several channels at once, abstracted ── -->
+		<g class="bison-flow__secure" data-secure>
+			<path class="bison-flow__securewire" d="M512 166 V246 Q512 266 492 266 H476" marker-end="url(#bison-secure-arrow)" />
+			<path class="bison-flow__securewire" d="M476 302 H548 Q568 302 568 282 V166" marker-end="url(#bison-secure-arrow)" />
+			<path class="bison-flow__securewire" d="M624 166 V318 Q624 338 604 338 H476" marker-end="url(#bison-secure-arrow)" />
+			<circle class="bison-flow__securepacket" r="3.8" style="offset-path:path('M512 166 V246 Q512 266 492 266 H476')" />
+			<circle class="bison-flow__securepacket" r="3.8" style={`offset-path:path('M476 302 H548 Q568 302 568 282 V166'); animation-delay:-${STAGE5_DURATION / 3}ms`} />
+			<circle class="bison-flow__securepacket" r="3.8" style={`offset-path:path('M624 166 V318 Q624 338 604 338 H476'); animation-delay:-${(STAGE5_DURATION * 2) / 3}ms`} />
+		</g>
+	</svg>
+</figure>
+
+<script>
+	const STAGE_COUNT = 5;
+	const HOLD = 4400;
+	const HANDOFF = 280;
+
+	for (const flow of document.querySelectorAll<HTMLElement>('[data-bison-flow]')) {
+		const svg = flow.querySelector('svg')!;
+		const narration = flow.querySelector<HTMLElement>('.bison-flow__narration')!;
+		const lines = narration.querySelectorAll<HTMLElement>('.bison-flow__line');
+		const fitNarration = () => {
+			narration.style.height = `${Math.max(...Array.from(lines, (line) => line.scrollHeight))}px`;
+		};
+		new ResizeObserver(fitNarration).observe(flow);
+		fitNarration();
+
+		// Measure each trace so the draw reads as one continuous line.
+		for (const trace of svg.querySelectorAll<SVGPathElement>('[data-trace]')) {
+			trace.style.setProperty('--len', String(trace.getTotalLength()));
+		}
+
+		// A missing icon file must not leave an empty node.
+		for (const icon of svg.querySelectorAll<SVGImageElement>('.bison-flow__icon')) {
+			icon.addEventListener('error', () => icon.remove());
+		}
+
+		const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+		// Reduced motion: show the finished state, never cycle.
+		if (reduced.matches) {
+			flow.dataset.stage = 'all';
+			continue;
+		}
+
+		let stage = 0;
+		let timer = 0;
+
+		const showNext = () => {
+			stage = (stage % STAGE_COUNT) + 1;
+			flow.dataset.stage = String(stage);
+			flow.removeAttribute('data-leaving');
+			// The final stage is the payoff: let it breathe before looping.
+			timer = window.setTimeout(advance, stage === STAGE_COUNT ? HOLD * 1.6 : HOLD);
+		};
+
+		const advance = () => {
+			if (!stage) return showNext();
+			flow.dataset.leaving = String(stage);
+			timer = window.setTimeout(showNext, HANDOFF);
+		};
+
+		const start = () => {
+			if (timer) return;
+			stage = 0;
+			flow.removeAttribute('data-leaving');
+			advance();
+		};
+
+		const stop = () => {
+			window.clearTimeout(timer);
+			timer = 0;
+		};
+
+		// Only run while visible, so an offscreen loop never burns frames.
+		const observer = new IntersectionObserver(
+			(entries) => {
+				for (const entry of entries) {
+					if (entry.isIntersecting) start();
+					else stop();
+				}
+			},
+			{ threshold: 0.4 },
+		);
+
+		observer.observe(flow);
+		document.addEventListener('visibilitychange', () => {
+			if (document.hidden) stop();
+		});
+	}
+</script>

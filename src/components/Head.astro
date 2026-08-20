@@ -1,0 +1,37 @@
+---
+import Default from '@astrojs/starlight/components/Head.astro';
+---
+
+<Default><slot /></Default>
+
+<script>
+  // ponytail: Starlight's ToC observer only marks a heading current when it
+  // crosses a ~53px band near the top of the viewport. The last section's
+  // heading never gets there when the page can't scroll past it, so the ToC
+  // stays stuck on the second-to-last entry. At the bottom of the page, force
+  // the last link current. Assign through the component's `current` setter, not
+  // the DOM attribute, or the observer's cached `_current` clobbers it later.
+  function fixLastTocEntry() {
+    const doc = document.documentElement;
+    if (window.innerHeight + window.scrollY < doc.scrollHeight - 2) return;
+    // Both the desktop sidebar and the mobile dropdown render a `starlight-toc`.
+    for (const toc of document.querySelectorAll('starlight-toc')) {
+      const links = toc.querySelectorAll('a');
+      if (!links.length) continue;
+      // @ts-expect-error - `current` is a protected setter on StarlightTOC.
+      toc.current = links[links.length - 1];
+    }
+  }
+
+  // Run after Starlight's intersection observer has settled, so its own
+  // assignment doesn't overwrite ours.
+  let pending: ReturnType<typeof setTimeout>;
+  function scheduleFix() {
+    clearTimeout(pending);
+    pending = setTimeout(fixLastTocEntry, 100);
+  }
+
+  addEventListener('scroll', scheduleFix, { passive: true });
+  addEventListener('resize', scheduleFix, { passive: true });
+  document.addEventListener('astro:page-load', scheduleFix);
+</script>

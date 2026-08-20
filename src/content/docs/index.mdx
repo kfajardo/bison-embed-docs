@@ -1,0 +1,185 @@
+---
+title: Embed the iframe
+description: Request a launch URL from your server, then render it in an iframe.
+tableOfContents:
+  minHeadingLevel: 2
+  maxHeadingLevel: 3
+pagefind: true
+---
+
+import Flow from '../../components/Flow.astro';
+
+<div class="bison-hero" not-content>
+  <h1 class="bison-hero__title">Two steps to<br /><em>an embedded</em> JIB Pay.</h1>
+  <p class="bison-hero__lede">One request from your server, one iframe on your page. Bison handles sign-in, navigation, and everything the user sees.</p>
+</div>
+
+<Flow />
+
+## What you need
+
+Bison provides these values for each environment:
+
+| Value | Used as |
+| --- | --- |
+| API base URL | Where the launch request goes |
+| Integration App ID | `X-Bison-App-Id` header |
+| Integration App Secret | `X-Bison-App-Secret` header |
+| Partner Access Token | `X-Partner-Access-Token` header |
+
+Bison also needs your site's origin (for example `https://app.example.com`) so it will allow your page to frame the embed. Send it before you start.
+
+## Step 1: Get a launch URL
+
+The launch request goes from your server, not the browser.
+
+```http
+POST /api/embeddable/iframe-sessions
+Content-Type: application/json
+X-Bison-App-Id: <app-id>
+X-Bison-App-Secret: <app-secret>
+X-Partner-Access-Token: <partner-token>
+```
+
+```json
+{
+  "clientUserId": "user-123",
+  "audience": "working-interest-owner"
+}
+```
+
+`clientUserId` identifies the signed-in user in *your* system. `audience` is either `working-interest-owner` or `operator`.
+
+Try it before writing any code:
+
+```bash
+curl -X POST "$BISON_API_URL/api/embeddable/iframe-sessions" \
+  -H "content-type: application/json" \
+  -H "x-bison-app-id: $BISON_APP_ID" \
+  -H "x-bison-app-secret: $BISON_APP_SECRET" \
+  -H "x-partner-access-token: $BISON_PARTNER_TOKEN" \
+  -d '{"clientUserId":"user-123","audience":"working-interest-owner"}'
+```
+
+The response:
+
+```json
+{
+  "success": true,
+  "data": {
+    "iframeUrl": "https://<embed-origin>/embed/payments?launchCode=<code>"
+  }
+}
+```
+
+Take `data.iframeUrl` and use it as-is. Don't modify the path or query string.
+
+### Expose it to your frontend
+
+Add one route that your page can call. It forwards the three headers and returns the URL:
+
+```js
+app.get('/embed-url', async (req, res) => {
+  const bison = await fetch(
+    `${process.env.BISON_API_URL}/api/embeddable/iframe-sessions`,
+    {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-bison-app-id': process.env.BISON_APP_ID,
+        'x-bison-app-secret': process.env.BISON_APP_SECRET,
+        'x-partner-access-token': process.env.BISON_PARTNER_TOKEN,
+      },
+      body: JSON.stringify({
+        clientUserId: req.user.id,
+        audience: 'working-interest-owner',
+      }),
+    },
+  );
+
+  const { data } = await bison.json();
+  res.set('cache-control', 'no-store').json({ iframeUrl: data.iframeUrl });
+});
+```
+
+`req.user.id` is the only line specific to your app: however you identify the current user. The rest is the same in any language.
+
+Read the credentials from environment variables or your secret manager, and keep the request on the server so they aren't exposed to the browser.
+
+## Step 2: Render the iframe
+
+```html
+<iframe id="bison" title="JIB Pay" style="width:100%;height:700px;border:0"></iframe>
+```
+
+```js
+const { iframeUrl } = await (await fetch('/embed-url')).json();
+document.getElementById('bison').src = iframeUrl;
+```
+
+Request the URL when you're ready to show the iframe. Launch codes are short-lived, so don't fetch one and hold it.
+
+### Sizing
+
+The embed fills whatever box you give it, but has no natural height. Give the iframe an explicit height or stretch it in a flex layout, or it will collapse.
+
+### Content Security Policy
+
+If your site sends a CSP, allow the embed origin:
+
+```http
+Content-Security-Policy: frame-src https://<embed-origin>;
+```
+
+### Sandbox
+
+You don't need a `sandbox` attribute. If you add one, it must include:
+
+```
+allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-downloads
+```
+
+Leaving any of these out breaks navigation, downloads, or bank linking.
+
+## Reloading
+
+Each iframe needs its own launch URL, and each URL works once. Request a fresh one whenever you mount or reload the embed. Reusing a URL shows **Link expired**.
+
+The user can keep navigating inside the iframe without new URLs. You only need one when the iframe itself is created or recreated.
+
+## Optional: listening for events
+
+The iframe posts two messages to your page. Ignore both and the embed still works.
+
+| Message | Meaning |
+| --- | --- |
+| `bison.embed.viewChanged` | The user opened a different screen. `event.data.view` is `dashboard`, `jib`, `revenue`, `reports`, or `settings`. |
+| `bison.embed.sessionInvalidated` | The session expired. Fetch a new URL and reset `src` if you want to recover automatically. |
+
+```js
+window.addEventListener('message', (event) => {
+  if (event.origin !== 'https://<embed-origin>') return;
+
+  if (event.data?.type === 'bison.embed.viewChanged') {
+    // e.g. sync your own breadcrumb or URL
+  }
+});
+```
+
+Always check `event.origin` first.
+
+## Opening a specific screen
+
+The launch URL always opens the default screen for the audience. There's no parameter to pick a different one.
+
+To open a specific screen such as Settings, add a second route that requests a launch URL and points it at that screen before returning it to the browser. Ask Bison for the correct path rather than guessing it in browser code.
+
+## What you don't need to build
+
+None of the following is necessary:
+
+- Validating the returned `iframeUrl`. Use it as-is.
+- Building embed paths in the browser. The returned URL already points at the right screen.
+- Adding a message listener, unless you want the events above.
+- Storing or caching launch URLs. Request a fresh one each time.
+- Tracking which screen the user is on. The iframe handles its own navigation.

@@ -1,0 +1,635 @@
+/* Bison Embed — docs theme
+ *
+ * Carries over the Bison design system: semantic color roles, the radius and
+ * shadow scale, and the type ramp. Values are transcribed here rather than
+ * imported, so this site has no build dependency on the component library.
+ * Keep them in step with the design system when it moves.
+ */
+
+:root {
+	/* ── Brand + semantic roles ─────────────────────────────────── */
+	--bison-primary: #4c7b63;
+	--bison-primary-hover: #406853;
+	--bison-primary-light: #ecf3f0;
+	--bison-accent: #40916b;
+
+	--bison-foreground: #111827;
+	--bison-muted-foreground: #6b7280;
+	--bison-border: #e5e7eb;
+	--bison-card: #ffffff;
+	--bison-background: #fdfdfd;
+	--bison-sidebar: #fafafa;
+
+	--bison-info: #3c83f6;
+	--bison-warning: #f59f0a;
+	--bison-error: #da584e;
+	--bison-success: #21c45d;
+
+	/* ── Radius ─────────────────────────────────────────────────── */
+	--bison-radius-sm: 0.25rem;
+	--bison-radius-lg: 0.5rem;
+	--bison-radius-xl: 0.75rem;
+
+	/* ── Shadows ────────────────────────────────────────────────── */
+	--bison-shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+	--bison-shadow-popover: 0 4px 16px rgba(15, 42, 57, 0.12);
+
+	--bison-ease: cubic-bezier(0.16, 1, 0.3, 1);
+	--sl-sidebar-width: 15rem;
+
+	/* ── Starlight accent ramp, keyed to the system primary ─────── */
+	--sl-color-accent-low: #ecf3f0;
+	--sl-color-accent: #4c7b63;
+	--sl-color-accent-high: #2f4f40;
+	--sl-color-text-accent: #40916b;
+
+	--bison-hairline: var(--bison-border);
+	--bison-panel: var(--bison-sidebar);
+	--bison-panel-ink: var(--bison-foreground);
+	--bison-panel-mute: var(--bison-muted-foreground);
+}
+
+/* The system is light-first. Dark mode re-roles the same hues so the docs
+   stay readable without inventing a second palette. */
+:root[data-theme='dark'] {
+	--bison-primary: #6d9c83;
+	--bison-primary-light: #16241d;
+
+	--bison-foreground: #f3f4f6;
+	--bison-muted-foreground: #9ca3af;
+	--bison-border: #2a3330;
+	--bison-card: #12181a;
+
+	--sl-color-accent-low: #16241d;
+	--sl-color-accent: #4c7b63;
+	--sl-color-accent-high: #a8d8c0;
+	--sl-color-text-accent: #7fc7a5;
+
+	--bison-hairline: var(--bison-border);
+	--bison-panel: #0f1416;
+	--bison-panel-ink: #f3f4f6;
+	--bison-panel-mute: #9ca3af;
+}
+
+/* ---------------------------------------------------------------- Hero */
+
+.bison-hero {
+	margin-block: 0 3rem;
+	padding-block: 0.25rem 2.5rem;
+	border-bottom: 1px solid var(--bison-hairline);
+}
+
+/* The one place type runs past the system's --text-heading-xl. */
+.bison-hero__title {
+	margin: 0;
+	font-size: clamp(2.25rem, 1.4rem + 3.6vw, 3.75rem);
+	line-height: 1;
+	letter-spacing: -0.033em;
+	font-weight: 600;
+	color: var(--bison-foreground);
+	text-wrap: balance;
+}
+
+.bison-hero__title em {
+	font-style: normal;
+	color: var(--bison-primary);
+}
+
+.bison-hero__lede {
+	max-width: 46ch;
+	margin: 1.1rem 0 0;
+	font-size: 1rem; /* --text-body-l */
+	line-height: 1.5rem;
+	color: var(--bison-muted-foreground);
+	text-wrap: pretty;
+}
+
+/* ------------------------------------------------------------- Diagram */
+
+/* Built as a system Card: rounded-lg, border-border, shadow-card. */
+.bison-flow {
+	box-sizing: border-box;
+	width: 100%;
+	max-width: 100%;
+	margin: 2rem 0 0;
+	padding: clamp(0.875rem, 2vw, 1.125rem);
+	overflow: hidden;
+	border: 1px solid var(--bison-border);
+	border-radius: var(--bison-radius-lg);
+	background: var(--bison-panel);
+	box-shadow: var(--bison-shadow-card);
+}
+
+/* ---- Narration: the large type that says what stage this is ---- */
+
+.bison-flow__stage {
+	margin-bottom: 0.5rem;
+}
+
+.bison-flow__narration {
+	position: relative;
+	min-width: 0;
+}
+
+/* Every line is absolute over a reserved box, so no stage reflows the
+   block while its characters crossfade. */
+.bison-flow__line {
+	position: absolute;
+	inset: 0;
+	margin: 0;
+	display: grid;
+	align-content: start;
+	gap: 0.3rem;
+	pointer-events: none;
+}
+
+.bison-flow__line b {
+	font-size: clamp(1.05rem, 0.9rem + 0.7vw, 1.375rem);
+	line-height: 1.875rem;
+	font-weight: 600;
+	letter-spacing: -0.015em;
+	color: var(--bison-panel-ink);
+	text-wrap: balance;
+}
+
+.bison-flow__line > span {
+	font-size: 0.8125rem;
+	line-height: 1.125rem;
+	color: var(--bison-panel-mute);
+}
+
+.bison-flow__word {
+	display: inline-block;
+	white-space: nowrap;
+}
+
+.bison-flow__char {
+	display: inline-block;
+	opacity: 0;
+	filter: blur(0.4rem);
+	transform: translateY(-0.35em) scale(0.97);
+	transform-origin: 50% 65%;
+	transition:
+		opacity 240ms var(--bison-ease) calc(var(--char) * 1.5ms),
+		filter 360ms var(--bison-ease) calc(var(--char) * 1.5ms),
+		transform 360ms var(--bison-ease) calc(var(--char) * 1.5ms);
+}
+
+/* ---- The staged wiring ---- */
+
+.bison-flow svg {
+	display: block;
+	width: 100%;
+	max-width: 100%;
+	height: auto;
+}
+
+.bison-flow :is(rect, path, circle, text) {
+	outline: none;
+}
+
+.bison-flow__label {
+	font-size: 9px;
+	font-weight: 500;
+	line-height: 1;
+	fill: var(--bison-panel-mute);
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+}
+
+/* A zone is a boundary: your app, or Bison's services. */
+.bison-flow__zonebox {
+	fill: color-mix(in srgb, var(--bison-card) 55%, transparent);
+	stroke: var(--bison-border);
+	stroke-width: 1.5;
+}
+
+.bison-flow__zonename {
+	font-size: 10px;
+	font-weight: 600;
+	line-height: 1;
+	fill: var(--bison-panel-mute);
+	letter-spacing: 0.04em;
+}
+
+/* The embed is nested inside your app and owned by Bison: brand border. */
+.bison-flow__embed {
+	fill: color-mix(in srgb, var(--bison-primary) 8%, transparent);
+	stroke: var(--bison-primary);
+	stroke-width: 1.5;
+	stroke-opacity: 0.55;
+	transition: stroke-opacity 300ms var(--bison-ease);
+}
+
+.bison-flow__embedname {
+	font: 600 12px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+	fill: var(--bison-primary);
+	text-anchor: middle;
+}
+
+.bison-flow__iframe {
+	opacity: 0.28;
+	filter: saturate(0.25) brightness(0.82);
+	transition:
+		opacity 700ms var(--bison-ease),
+		filter 700ms var(--bison-ease);
+}
+
+.bison-flow__label {
+	font-size: 9px;
+	font-weight: 500;
+	line-height: 1;
+	fill: var(--bison-panel-mute);
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+}
+
+/* Icons sit directly on the panel; the ring carries active state so the
+   3D renders are not boxed inside a competing card border. */
+.bison-flow__icon {
+	filter:
+		drop-shadow(0 2px 6px rgba(17, 24, 39, 0.18))
+		drop-shadow(0 0 0 rgba(64, 145, 107, 0));
+}
+
+.bison-flow__ring {
+	fill: none;
+	stroke: var(--bison-primary);
+	stroke-width: 1.5;
+	stroke-opacity: 0;
+	transition: stroke-opacity 300ms var(--bison-ease);
+}
+
+/* Fallback: if an icon file is missing, the node still reads as a card. */
+.bison-flow__node.is-iconless .bison-flow__ring {
+	fill: var(--bison-card);
+	stroke-opacity: 0.35;
+}
+
+/* Inside a node card: no tracking blow-up, must fit the box. */
+.bison-flow__sub {
+	font-size: 9.5px;
+	font-weight: 500;
+	line-height: 1;
+	fill: var(--bison-panel-mute);
+}
+
+.bison-flow__name {
+	font-size: 11px;
+	font-weight: 600;
+	line-height: 1;
+	fill: var(--bison-panel-ink);
+}
+
+.bison-flow__wire {
+	stroke: var(--bison-border);
+	stroke-width: 1.5;
+	fill: none;
+	stroke-linecap: round;
+	stroke-linejoin: round;
+}
+
+.bison-flow__iframe-wire {
+	opacity: 0.2;
+	transition: opacity 700ms var(--bison-ease);
+}
+
+/* The halo marks whichever node the current stage lands on. */
+.bison-flow__halo {
+	stroke: var(--bison-primary);
+	stroke-width: 1.5;
+	stroke-opacity: 0;
+	transition: stroke-opacity 300ms var(--bison-ease);
+}
+
+.bison-flow__trace {
+	stroke: var(--bison-accent);
+	stroke-width: 2;
+	fill: none;
+	stroke-linecap: round;
+	filter: drop-shadow(0 0 0.2rem color-mix(in srgb, var(--bison-accent) 70%, transparent));
+	stroke-dasharray: var(--len) var(--len);
+	stroke-dashoffset: var(--len);
+}
+
+.bison-flow__packet {
+	fill: var(--bison-accent);
+	opacity: 0;
+	transform-box: fill-box;
+	transform-origin: center;
+	filter:
+		drop-shadow(0 0 0.16rem var(--bison-accent))
+		drop-shadow(0 0 0.4rem color-mix(in srgb, var(--bison-accent) 75%, transparent));
+}
+
+/* Each stage lights exactly one trace, one packet, one halo, one line. */
+.bison-flow[data-stage='1'] .bison-flow__trace[data-stage='1'],
+.bison-flow[data-stage='2'] .bison-flow__trace[data-stage='2'],
+.bison-flow[data-stage='3'] .bison-flow__trace[data-stage='3'],
+.bison-flow[data-stage='4'] .bison-flow__trace[data-stage='4'] {
+	animation: bison-draw var(--bison-step-duration, 3300ms) linear forwards;
+}
+
+.bison-flow[data-stage='1'] .bison-flow__packet[data-stage='1'],
+.bison-flow[data-stage='2'] .bison-flow__packet[data-stage='2'],
+.bison-flow[data-stage='3'] .bison-flow__packet[data-stage='3'],
+.bison-flow[data-stage='4'] .bison-flow__packet[data-stage='4'] {
+	animation: bison-travel var(--bison-step-duration, 3300ms) linear forwards;
+}
+
+.bison-flow[data-leaving='1'] .bison-flow__packet[data-stage='1'],
+.bison-flow[data-leaving='2'] .bison-flow__packet[data-stage='2'],
+.bison-flow[data-leaving='3'] .bison-flow__packet[data-stage='3'],
+.bison-flow[data-leaving='4'] .bison-flow__packet[data-stage='4'] {
+	animation: bison-handoff 280ms ease-out forwards;
+}
+
+.bison-flow[data-stage='1'] [data-zone='bison'] > .bison-flow__icon,
+.bison-flow[data-stage='2'] [data-zone='server'] > .bison-flow__icon,
+.bison-flow[data-stage='3'] [data-zone='app'] > .bison-flow__icon,
+.bison-flow[data-stage='4'] [data-zone='bison'] > .bison-flow__icon {
+	transform-box: fill-box;
+	transform-origin: center;
+	animation: bison-receive 1400ms ease-in-out calc(var(--bison-step-duration, 3300ms) - 560ms) both;
+}
+
+.bison-flow[data-stage='4'] .bison-flow__embed,
+.bison-flow[data-stage='5'] .bison-flow__embed {
+	stroke-opacity: 1;
+}
+
+.bison-flow[data-stage='4'] :is(.bison-flow__iframe, .bison-flow__iframe-wire),
+.bison-flow[data-stage='5'] :is(.bison-flow__iframe, .bison-flow__iframe-wire),
+.bison-flow[data-stage='all'] :is(.bison-flow__iframe, .bison-flow__iframe-wire),
+.bison-flow:not([data-stage]) :is(.bison-flow__iframe, .bison-flow__iframe-wire) {
+	opacity: 1;
+	filter: none;
+}
+
+.bison-flow[data-stage='1'] .bison-flow__line[data-line='1'] .bison-flow__char,
+.bison-flow[data-stage='2'] .bison-flow__line[data-line='2'] .bison-flow__char,
+.bison-flow[data-stage='3'] .bison-flow__line[data-line='3'] .bison-flow__char,
+.bison-flow[data-stage='4'] .bison-flow__line[data-line='4'] .bison-flow__char,
+.bison-flow[data-stage='5'] .bison-flow__line[data-line='5'] .bison-flow__char {
+	opacity: 1;
+	filter: blur(0);
+	transform: none;
+	transition-delay: calc(80ms + var(--char) * 10ms);
+}
+
+/* Reduced motion and no-JS both land here: everything drawn, first line shown. */
+.bison-flow:not([data-stage]) .bison-flow__line[data-line='1'] .bison-flow__char,
+.bison-flow[data-stage='all'] .bison-flow__line[data-line='1'] .bison-flow__char {
+	opacity: 1;
+	filter: none;
+	transform: none;
+	transition: none;
+}
+
+.bison-flow:not([data-stage]) .bison-flow__trace,
+.bison-flow[data-stage='all'] .bison-flow__trace {
+	stroke-dashoffset: 0;
+}
+
+/* ---- Stage 5: the abstracted secure exchange ----
+ * One channel stands in for every Bison endpoint the iframe calls. The
+ * spectrum sweep marks it as the surface where the business logic lives,
+ * without drawing a wire per API. Bounded to this band only.
+ */
+
+.bison-flow__secure {
+	opacity: 0;
+	transition: opacity 320ms var(--bison-ease);
+}
+
+.bison-flow[data-stage='5'] .bison-flow__secure {
+	opacity: 1;
+}
+
+
+
+.bison-flow__securewire {
+	stroke: url(#bison-spectrum);
+	stroke-width: 3;
+	fill: none;
+	stroke-linecap: round;
+	filter: drop-shadow(0 0 0.16rem color-mix(in srgb, var(--bison-accent) 65%, transparent));
+}
+
+.bison-flow__securepacket {
+	fill: var(--bison-panel-ink);
+	opacity: 0;
+	transform-box: fill-box;
+	transform-origin: center;
+	filter: drop-shadow(0 0 0.28rem var(--bison-accent));
+}
+
+.bison-flow[data-stage='5'] .bison-flow__securepacket {
+	animation: bison-shuttle var(--bison-stage5-duration, 1200ms) linear infinite;
+}
+
+.bison-flow[data-stage='5'] .bison-flow__securewire {
+	animation: bison-glow var(--bison-stage5-duration, 1200ms) ease-in-out infinite;
+}
+
+@keyframes bison-shuttle {
+	0% {
+		opacity: 0;
+		offset-distance: 0%;
+		transform: scale(0.4);
+	}
+	14% {
+		opacity: 1;
+		transform: scale(1.12);
+	}
+	24%,
+	86% {
+		opacity: 1;
+		transform: scale(1);
+	}
+	100% {
+		opacity: 0;
+		offset-distance: 100%;
+		transform: scale(0.45);
+	}
+}
+
+@keyframes bison-glow {
+	0%,
+	100% {
+		stroke-opacity: 0.75;
+	}
+	50% {
+		stroke-opacity: 1;
+	}
+}
+
+@keyframes bison-draw {
+	to {
+		stroke-dashoffset: 0;
+	}
+}
+
+@keyframes bison-travel {
+	0% {
+		opacity: 0;
+		offset-distance: 0%;
+		transform: scale(0.4);
+	}
+	10% {
+		opacity: 1;
+		transform: scale(1.12);
+	}
+	100% {
+		opacity: 1;
+		offset-distance: 100%;
+		transform: scale(1);
+	}
+}
+
+@keyframes bison-handoff {
+	from {
+		opacity: 1;
+		offset-distance: 100%;
+		transform: scale(1);
+	}
+	100% {
+		opacity: 0;
+		offset-distance: 100%;
+		transform: scale(0.65);
+	}
+}
+
+@keyframes bison-receive {
+	0%,
+	100% {
+		transform: scale(1);
+		filter:
+			drop-shadow(0 2px 6px rgba(17, 24, 39, 0.18))
+			drop-shadow(0 0 0 rgba(64, 145, 107, 0));
+	}
+	25%,
+	55% {
+		transform: scale(1.08);
+		filter:
+			drop-shadow(0 0 0.3rem rgba(64, 145, 107, 0.75))
+			drop-shadow(0 0 0.9rem rgba(64, 145, 107, 0.38));
+	}
+}
+
+/* --------------------------------------------------------- Refinements */
+
+:where(html) {
+	scroll-behavior: smooth;
+}
+
+.sl-markdown-content :is(h2, h3)[id] {
+	scroll-margin-top: 5rem;
+}
+
+.sl-markdown-content h2 {
+	letter-spacing: -0.02em;
+}
+
+/* Tables adopt the system's border role and body-m scale. */
+.sl-markdown-content table {
+	font-size: 0.875rem;
+	line-height: 1.375rem;
+}
+
+.sl-markdown-content :is(td, th) {
+	border-color: var(--bison-border);
+}
+
+/* Code blocks read as system cards. */
+.sl-markdown-content .expressive-code .frame {
+	border-radius: var(--bison-radius-lg);
+}
+
+/* The hero supplies the page heading, so the generated title row is redundant. */
+body:has(.bison-hero) .content-panel:first-of-type {
+	display: none;
+}
+
+#starlight__sidebar {
+	font-size: 0.875rem;
+}
+
+.site-title img {
+	width: 2rem;
+	height: 2rem;
+}
+
+:root[data-theme='light'] .site-title img {
+	filter: invert(1);
+}
+
+.pagination-links {
+	display: flex;
+	border-top: 1px solid var(--bison-hairline);
+	padding-top: 1rem;
+}
+
+.pagination-links a {
+	flex: 0 0 auto;
+	width: auto;
+	margin-inline-start: auto;
+	padding: 0.5rem 0;
+	border: 0;
+	box-shadow: none;
+	font-size: 0;
+}
+
+.pagination-links a[rel='prev'] {
+	margin-inline: 0 auto;
+}
+
+.pagination-links a:hover {
+	border-color: transparent;
+	color: var(--sl-color-text-accent);
+}
+
+.pagination-links a br {
+	display: none;
+}
+
+.pagination-links .link-title {
+	font-size: 0.875rem;
+	font-weight: 600;
+	line-height: 1.25rem;
+}
+
+.pagination-links svg {
+	width: 1rem;
+	height: 1rem;
+}
+
+/* Honour the reader's setting: nothing moves, everything still reads. */
+@media (prefers-reduced-motion: reduce) {
+	:where(html) {
+		scroll-behavior: auto;
+	}
+
+	.bison-flow :is(.bison-flow__trace, .bison-flow__packet, .bison-flow__char, .bison-flow__icon, .bison-flow__iframe, .bison-flow__iframe-wire) {
+		animation: none !important;
+		transition: none !important;
+	}
+
+	.bison-flow .bison-flow__trace {
+		stroke-dashoffset: 0;
+	}
+
+	.bison-flow .bison-flow__embed {
+		stroke-opacity: 1;
+	}
+
+	.bison-flow .bison-flow__packet {
+		opacity: 0;
+	}
+
+	.bison-flow .bison-flow__line[data-line='1'] .bison-flow__char {
+		opacity: 1;
+		filter: none;
+		transform: none;
+	}
+}
