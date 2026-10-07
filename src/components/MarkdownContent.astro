@@ -1,0 +1,66 @@
+---
+// Splits the rendered page into rows, like a Scalar reference. Each h2 opens a
+// section, each h2 or h3 opens a row, and a row's top-level code blocks, cards
+// and diagram move to its right-hand column. Nodes are sliced from the
+// rendered HTML by source offset, so their markup reaches the page unchanged.
+import Default from '@astrojs/starlight/components/MarkdownContent.astro';
+import { fromHtml } from 'hast-util-from-html';
+
+const { entry } = Astro.locals.starlightRoute;
+const html = await Astro.slots.render('default');
+
+type Row = { left: string; right: string; lines: number };
+const sections: Row[][] = [[{ left: '', right: '', lines: 0 }]];
+const asides = ['expressive-code', 'bison-card', 'bison-flow'];
+
+for (const node of fromHtml(html, { fragment: true }).children) {
+	if (node.type === 'text' && !node.value.trim()) continue;
+	const tag = node.type === 'element' ? node.tagName : '';
+	const classes = node.type === 'element' ? ((node.properties.className as string[]) ?? []) : [];
+	const level = tag === 'h2' || classes.includes('level-h2') ? 2 : tag === 'h3' || classes.includes('level-h3') ? 3 : 0;
+	if (level === 2) sections.push([]);
+	if (level) sections.at(-1)!.push({ left: '', right: '', lines: 0 });
+
+	const row = sections.at(-1)!.at(-1)!;
+	const markup = html.slice(node.position!.start.offset, node.position!.end.offset);
+	if (tag === 'pre' || classes.some((name) => asides.includes(name))) {
+		row.right += markup;
+		// Rough height in code lines, 3 per block for its frame; 24 is about
+		// 470px. Only a column that fits the viewport sticks, or its bottom
+		// would stay hidden while the prose beside it scrolls.
+		row.lines += (markup.match(/class="ec-line/g)?.length ?? 0) + 3;
+	} else {
+		row.left += markup;
+	}
+}
+---
+
+<Default>
+	{
+		entry.data.hero ? (
+			<Fragment set:html={html} />
+		) : (
+			sections.map((rows, s) => (
+				<section class="bison-section">
+					{rows.map((row, r) => (
+						<div class="bison-row">
+							<div class="bison-col">
+								{s + r === 0 && (
+									<h1 id="_top" class="bison-title">
+										{entry.data.title}
+									</h1>
+								)}
+								<Fragment set:html={row.left} />
+							</div>
+							{row.right && (
+								<div class="bison-col bison-aside" data-sticky={row.lines <= 24 ? '' : undefined}>
+									<Fragment set:html={row.right} />
+								</div>
+							)}
+						</div>
+					))}
+				</section>
+			))
+		)
+	}
+</Default>

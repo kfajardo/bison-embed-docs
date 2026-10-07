@@ -1,123 +1,284 @@
 /* Bison Embed — docs theme
  *
- * Carries over the Bison design system: semantic color roles, the radius and
- * shadow scale, and the type ramp. Values are transcribed here rather than
- * imported, so this site has no build dependency on the component library.
- * Keep them in step with the design system when it moves.
+ * Matches the EnergyLink API reference, a Scalar theme. The --scalar-* tokens
+ * hold the values that page renders; Starlight's own variables are mapped onto
+ * them, so its built-in pieces follow. Content typography is transcribed from
+ * Scalar's .markdown rules. Code-block colors live in ec.config.mjs.
  */
 
+/* -------------------------------------------------------------- Tokens */
+
 :root {
-	/* ── Brand + semantic roles ─────────────────────────────────── */
-	--bison-primary: #4c7b63;
-	--bison-primary-hover: #406853;
-	--bison-primary-light: #ecf3f0;
-	--bison-accent: #40916b;
+	--scalar-background-1: #fff;
+	--scalar-background-2: #f6f6f6;
+	--scalar-background-3: #e7e7e7;
+	--scalar-color-1: #1b1b1b;
+	--scalar-color-2: #707070;
+	--scalar-color-3: #8e8e8e;
+	--scalar-border-color: #dfdfdf;
+	--scalar-sidebar-search-background: #fafafa;
+	--scalar-color-green: #069061;
+	--scalar-color-orange: #ff5800;
+	--scalar-color-blue: #0082d0;
+	--scalar-color-purple: #5203d1;
+	--scalar-color-red: #ef0006;
+	--scalar-color-yellow: #edbe20;
 
-	--bison-foreground: #111827;
-	--bison-muted-foreground: #6b7280;
-	--bison-border: #e5e7eb;
-	--bison-card: #ffffff;
-	--bison-background: #fdfdfd;
-	--bison-sidebar: #fafafa;
+	--scalar-font: 'Inter', ui-sans-serif, system-ui, sans-serif;
+	--scalar-font-code: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+	--scalar-radius: 3px;
+	--scalar-radius-lg: 6px;
+	--scalar-radius-xl: 8px;
+	--scalar-hairline: 0.5px solid var(--scalar-border-color);
 
-	--bison-info: #3c83f6;
-	--bison-warning: #f59f0a;
-	--bison-error: #da584e;
-	--bison-success: #21c45d;
-
-	/* ── Radius ─────────────────────────────────────────────────── */
-	--bison-radius-sm: 0.25rem;
-	--bison-radius-lg: 0.5rem;
-	--bison-radius-xl: 0.75rem;
-
-	/* ── Shadows ────────────────────────────────────────────────── */
-	--bison-shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
-	--bison-shadow-popover: 0 4px 16px rgba(15, 42, 57, 0.12);
-
-	--bison-ease: cubic-bezier(0.16, 1, 0.3, 1);
-	--sl-sidebar-width: 15rem;
-
-	/* ── Starlight accent ramp, keyed to the system primary ─────── */
-	--sl-color-accent-low: #ecf3f0;
-	--sl-color-accent: #4c7b63;
-	--sl-color-accent-high: #2f4f40;
-	--sl-color-text-accent: #40916b;
-
-	--bison-hairline: var(--bison-border);
-	--bison-panel: var(--bison-sidebar);
-	--bison-panel-ink: var(--bison-foreground);
-	--bison-panel-mute: var(--bison-muted-foreground);
+	/* Code cards are dark in both themes. ec.config.mjs uses the same values. */
+	--scalar-code-background: #1a1a1a;
+	--scalar-code-border: #2d2d2d;
+	--scalar-code-color: #a4a4a4;
+	--scalar-code-title: #e7e7e7;
+	--scalar-code-green: #00b648;
 }
 
-/* The system is light-first. Dark mode re-roles the same hues so the docs
-   stay readable without inventing a second palette. */
-:root[data-theme='dark'] {
-	--bison-primary: #6d9c83;
-	--bison-primary-light: #16241d;
-
-	--bison-foreground: #f3f4f6;
-	--bison-muted-foreground: #9ca3af;
-	--bison-border: #2a3330;
-	--bison-card: #12181a;
-
-	--sl-color-accent-low: #16241d;
-	--sl-color-accent: #4c7b63;
-	--sl-color-accent-high: #a8d8c0;
-	--sl-color-text-accent: #7fc7a5;
-
-	--bison-hairline: var(--bison-border);
-	--bison-panel: #0f1416;
-	--bison-panel-ink: #f3f4f6;
-	--bison-panel-mute: #9ca3af;
+/* Screen only: printing always gets the light tokens. */
+@media screen {
+	:root[data-theme='dark'] {
+		--scalar-background-1: #0f0f0f;
+		--scalar-background-2: #1a1a1a;
+		--scalar-background-3: #272727;
+		--scalar-color-1: #e7e7e7;
+		--scalar-color-2: #a4a4a4;
+		--scalar-color-3: #797979;
+		--scalar-border-color: #2d2d2d;
+		--scalar-sidebar-search-background: #141414;
+		--scalar-color-green: #00b648;
+		--scalar-color-orange: #ff8d4d;
+		--scalar-color-blue: #4eb3ec;
+		--scalar-color-purple: #b191f9;
+		--scalar-color-red: #dc1b19;
+		--scalar-color-yellow: #ffc90d;
+	}
 }
 
-/* ---------------------------------------------------------------- Hero */
+/* Starlight's ramp runs from --sl-color-white (strongest text) to
+   --sl-color-black (page background) in both themes, so one mapping onto the
+   theme-aware tokens covers light and dark. Unlayered, it beats Starlight's
+   layered defaults. The accent stays grey: no brand color in focus rings,
+   selections or controls. */
+:root {
+	--sl-font: var(--scalar-font);
+	--sl-font-mono: var(--scalar-font-code);
 
-.bison-hero {
-	margin-block: 0 3rem;
-	padding-block: 0.25rem 2.5rem;
-	border-bottom: 1px solid var(--bison-hairline);
+	--sl-color-white: var(--scalar-color-1);
+	--sl-color-gray-1: var(--scalar-color-1);
+	--sl-color-gray-2: var(--scalar-color-2);
+	--sl-color-gray-3: var(--scalar-color-2);
+	--sl-color-gray-4: var(--scalar-color-3);
+	--sl-color-gray-5: var(--scalar-border-color);
+	--sl-color-gray-6: var(--scalar-background-2);
+	--sl-color-black: var(--scalar-background-1);
+
+	--sl-color-accent-low: var(--scalar-background-2);
+	--sl-color-accent: var(--scalar-color-2);
+	--sl-color-accent-high: var(--scalar-color-1);
+
+	--sl-color-text: var(--scalar-color-1);
+	--sl-color-text-accent: var(--scalar-color-1);
+	--sl-color-bg: var(--scalar-background-1);
+	--sl-color-bg-nav: var(--scalar-background-1);
+	--sl-color-bg-sidebar: var(--scalar-background-1);
+	--sl-color-bg-inline-code: var(--scalar-background-2);
+	--sl-color-hairline-light: var(--scalar-border-color);
+	--sl-color-hairline: var(--scalar-border-color);
+	--sl-color-hairline-shade: var(--scalar-border-color);
+
+	/* Body 16px/26px. Headings: page title 24px, h2 20px/23px, h3 and h4 16px. */
+	--sl-line-height: 1.625;
+	--sl-line-height-headings: 1.15;
+	--sl-text-h1: 1.5rem;
+	--sl-text-h2: 1.25rem;
+	--sl-text-h3: 1rem;
+	--sl-text-h4: 1rem;
 }
 
-/* The one place type runs past the system's --text-heading-xl. */
-.bison-hero__title {
-	margin: 0;
-	font-size: clamp(2.25rem, 1.4rem + 3.6vw, 3.75rem);
-	line-height: 1;
-	letter-spacing: -0.033em;
+/* -------------------------------------------------- Content typography */
+
+/* Starlight keeps 1rem between blocks. Headings get Scalar's 24px above and
+   12px below. Starlight wraps each heading in .sl-heading-wrapper. */
+.sl-markdown-content :not(.sl-heading-wrapper) + .sl-heading-wrapper {
+	margin-top: 24px;
+}
+
+.sl-markdown-content .sl-heading-wrapper + * {
+	margin-top: 12px;
+}
+
+.sl-markdown-content h4 {
+	font-weight: 500;
+}
+
+.sl-markdown-content :is(ul, ol):not(:where(.not-content *)) {
+	padding-inline-start: 1.6em;
+}
+
+.sl-markdown-content li:not(:where(.not-content *)) {
+	padding-inline-start: 7px;
+}
+
+.sl-markdown-content ol > li:not(:where(.not-content *))::marker {
+	font-variant-numeric: tabular-nums;
+	font-weight: 500;
+}
+
+.sl-markdown-content a:not(:where(.not-content *)) {
+	font-weight: 500;
+	text-decoration-thickness: 1px;
+	text-underline-offset: 0.25rem;
+	text-decoration-color: color-mix(in srgb, var(--scalar-color-1) 30%, transparent);
+}
+
+.sl-markdown-content a:hover:not(:where(.not-content *)) {
+	text-decoration-color: var(--scalar-color-1);
+}
+
+.sl-markdown-content a:visited:not(:where(.not-content *)) {
+	color: var(--scalar-color-2);
+}
+
+.sl-markdown-content strong:not(:where(.not-content *)) {
 	font-weight: 600;
-	color: var(--bison-foreground);
-	text-wrap: balance;
 }
 
-.bison-hero__title em {
-	font-style: normal;
-	color: var(--bison-primary);
+.sl-markdown-content code:not(:where(.not-content *)) {
+	padding: 0 3px;
+	border-radius: var(--scalar-radius);
+	box-shadow: 0 0 0 0.5px var(--scalar-border-color);
+	font-size: 12px;
 }
 
-.bison-hero__lede {
-	max-width: 46ch;
-	margin: 1.1rem 0 0;
-	font-size: 1rem; /* --text-body-l */
-	line-height: 1.5rem;
-	color: var(--bison-muted-foreground);
-	text-wrap: pretty;
+/* Code in a heading keeps the heading's size. */
+.sl-markdown-content :is(h1, h2, h3, h4, h5, h6) code {
+	font-size: inherit;
+}
+
+/* Starlight's block display stays, so wide tables scroll inside the frame. */
+.sl-markdown-content table:not(:where(.not-content *)) {
+	width: max-content;
+	max-width: 100%;
+	border: var(--scalar-hairline);
+	border-radius: var(--scalar-radius);
+	font-size: 14px;
+}
+
+.sl-markdown-content :is(th, td):not(:where(.not-content *)) {
+	padding: 8.5px 16px;
+	border-bottom: var(--scalar-hairline);
+	vertical-align: top;
+}
+
+.sl-markdown-content :is(th, td):not(:last-child, :where(.not-content *)) {
+	border-inline-end: var(--scalar-hairline);
+}
+
+.sl-markdown-content tr:last-child > td:not(:where(.not-content *)) {
+	border-bottom: 0;
+}
+
+.sl-markdown-content th:not(:where(.not-content *)) {
+	background: var(--scalar-background-2);
+}
+
+.sl-markdown-content blockquote:not(:where(.not-content *)) {
+	padding-inline-start: 12px;
+	border-inline-start: 2px solid var(--scalar-border-color);
+}
+
+.sl-markdown-content hr:not(:where(.not-content *)) {
+	border-bottom: var(--scalar-hairline);
+}
+
+.sl-markdown-content kbd:not(:where(.not-content *)) {
+	padding: 4px 5px;
+	border: var(--scalar-hairline);
+	border-radius: var(--scalar-radius);
+	font: 500 12px var(--scalar-font);
+	color: var(--scalar-color-2);
+}
+
+/* ---------------------------------------------------------- Code cards */
+
+/* ec.config.mjs draws the card. Expressive Code centers terminal titles;
+   Scalar's card headers sit left. */
+.expressive-code .frame.is-terminal .header {
+	justify-content: start;
+	padding-inline: 12px 10px;
+	letter-spacing: normal;
+}
+
+/* HTTP requests: ec.config.mjs moves the request line into the title, which
+   reads like Scalar's request card header, `POST /path`. */
+.expressive-code .title:has(.http-method) {
+	font-family: var(--scalar-font-code);
+	color: var(--scalar-code-color);
+}
+
+.expressive-code .http-method {
+	color: var(--scalar-code-green);
+}
+
+/* Expressive Code draws the title bar's bottom edge as a 0.5px gradient,
+   which rounds away. Scalar divides header and body with a hairline. */
+.expressive-code .frame.has-title pre {
+	border-top: 0.5px solid var(--scalar-code-border);
+}
+
+/* ---------------------------------------------------------- Pagination */
+
+/* Quiet prev/next links on one row under a hairline. No boxes. The arrow
+   shows the direction; "Previous" and "Next" stay for screen readers only. */
+.pagination-links {
+	display: flex;
+	padding-top: 16px;
+	border-top: var(--scalar-hairline);
+}
+
+.pagination-links a {
+	padding: 0;
+	border: 0;
+	border-radius: 0;
+	box-shadow: none;
+	font-size: 0;
+	color: var(--scalar-color-2);
+}
+
+.pagination-links a:hover {
+	color: var(--scalar-color-1);
+}
+
+.pagination-links a br {
+	display: none;
+}
+
+.pagination-links .link-title {
+	font-size: 14px;
+	font-weight: 500;
+	line-height: 20px;
+	color: inherit;
+}
+
+.pagination-links svg {
+	font-size: 16px;
 }
 
 /* ------------------------------------------------------------- Diagram */
 
-/* Built as a system Card: rounded-lg, border-border, shadow-card. */
+/* A Scalar card. The page places it without further chrome. */
 .bison-flow {
-	box-sizing: border-box;
-	width: 100%;
-	max-width: 100%;
-	margin: 2rem 0 0;
+	--bison-ease: cubic-bezier(0.16, 1, 0.3, 1);
 	padding: clamp(0.875rem, 2vw, 1.125rem);
 	overflow: hidden;
-	border: 1px solid var(--bison-border);
-	border-radius: var(--bison-radius-lg);
-	background: var(--bison-panel);
-	box-shadow: var(--bison-shadow-card);
+	border: var(--scalar-hairline);
+	border-radius: var(--scalar-radius-xl);
+	background: var(--scalar-background-1);
 }
 
 /* ---- Narration: the large type that says what stage this is ---- */
@@ -127,15 +288,13 @@
 }
 
 .bison-flow__narration {
-	position: relative;
+	display: grid;
 	min-width: 0;
 }
 
-/* Every line is absolute over a reserved box, so no stage reflows the
-   block while its characters crossfade. */
+/* Stack every line in one grid cell so stage changes do not reflow the block. */
 .bison-flow__line {
-	position: absolute;
-	inset: 0;
+	grid-area: 1 / 1;
 	margin: 0;
 	display: grid;
 	align-content: start;
@@ -143,19 +302,19 @@
 	pointer-events: none;
 }
 
+/* Scalar's sub-heading scale: the card reads as part of the page, not a hero. */
 .bison-flow__line b {
-	font-size: clamp(1.05rem, 0.9rem + 0.7vw, 1.375rem);
-	line-height: 1.875rem;
+	font-size: 16px;
+	line-height: 23px;
 	font-weight: 600;
-	letter-spacing: -0.015em;
-	color: var(--bison-panel-ink);
+	color: var(--scalar-color-1);
 	text-wrap: balance;
 }
 
 .bison-flow__line > span {
 	font-size: 0.8125rem;
 	line-height: 1.125rem;
-	color: var(--bison-panel-mute);
+	color: var(--scalar-color-2);
 }
 
 .bison-flow__word {
@@ -188,19 +347,10 @@
 	outline: none;
 }
 
-.bison-flow__label {
-	font-size: 9px;
-	font-weight: 500;
-	line-height: 1;
-	fill: var(--bison-panel-mute);
-	letter-spacing: 0.08em;
-	text-transform: uppercase;
-}
-
 /* A zone is a boundary: your app, or Bison's services. */
 .bison-flow__zonebox {
-	fill: color-mix(in srgb, var(--bison-card) 55%, transparent);
-	stroke: var(--bison-border);
+	fill: none;
+	stroke: var(--scalar-border-color);
 	stroke-width: 1.5;
 }
 
@@ -208,22 +358,22 @@
 	font-size: 10px;
 	font-weight: 600;
 	line-height: 1;
-	fill: var(--bison-panel-mute);
+	fill: var(--scalar-color-2);
 	letter-spacing: 0.04em;
 }
 
-/* The embed is nested inside your app and owned by Bison: brand border. */
+/* The embed is nested inside your app: a raised panel that firms up when addressed. */
 .bison-flow__embed {
-	fill: color-mix(in srgb, var(--bison-primary) 8%, transparent);
-	stroke: var(--bison-primary);
+	fill: var(--scalar-background-2);
+	stroke: var(--scalar-color-2);
 	stroke-width: 1.5;
 	stroke-opacity: 0.55;
 	transition: stroke-opacity 300ms var(--bison-ease);
 }
 
 .bison-flow__embedname {
-	font: 600 12px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
-	fill: var(--bison-primary);
+	font: 600 12px/1 var(--scalar-font-code);
+	fill: var(--scalar-color-1);
 	text-anchor: middle;
 }
 
@@ -235,35 +385,11 @@
 		filter 700ms var(--bison-ease);
 }
 
-.bison-flow__label {
-	font-size: 9px;
-	font-weight: 500;
-	line-height: 1;
-	fill: var(--bison-panel-mute);
-	letter-spacing: 0.08em;
-	text-transform: uppercase;
-}
-
-/* Icons sit directly on the panel; the ring carries active state so the
-   3D renders are not boxed inside a competing card border. */
+/* Icons sit directly on the panel so the 3D renders are not boxed twice. */
 .bison-flow__icon {
 	filter:
 		drop-shadow(0 2px 6px rgba(17, 24, 39, 0.18))
-		drop-shadow(0 0 0 rgba(64, 145, 107, 0));
-}
-
-.bison-flow__ring {
-	fill: none;
-	stroke: var(--bison-primary);
-	stroke-width: 1.5;
-	stroke-opacity: 0;
-	transition: stroke-opacity 300ms var(--bison-ease);
-}
-
-/* Fallback: if an icon file is missing, the node still reads as a card. */
-.bison-flow__node.is-iconless .bison-flow__ring {
-	fill: var(--bison-card);
-	stroke-opacity: 0.35;
+		drop-shadow(0 0 0 transparent);
 }
 
 /* Inside a node card: no tracking blow-up, must fit the box. */
@@ -271,18 +397,18 @@
 	font-size: 9.5px;
 	font-weight: 500;
 	line-height: 1;
-	fill: var(--bison-panel-mute);
+	fill: var(--scalar-color-2);
 }
 
 .bison-flow__name {
 	font-size: 11px;
 	font-weight: 600;
 	line-height: 1;
-	fill: var(--bison-panel-ink);
+	fill: var(--scalar-color-1);
 }
 
 .bison-flow__wire {
-	stroke: var(--bison-border);
+	stroke: var(--scalar-border-color);
 	stroke-width: 1.5;
 	fill: none;
 	stroke-linecap: round;
@@ -294,32 +420,24 @@
 	transition: opacity 700ms var(--bison-ease);
 }
 
-/* The halo marks whichever node the current stage lands on. */
-.bison-flow__halo {
-	stroke: var(--bison-primary);
-	stroke-width: 1.5;
-	stroke-opacity: 0;
-	transition: stroke-opacity 300ms var(--bison-ease);
-}
-
 .bison-flow__trace {
-	stroke: var(--bison-accent);
+	stroke: var(--scalar-color-green);
 	stroke-width: 2;
 	fill: none;
 	stroke-linecap: round;
-	filter: drop-shadow(0 0 0.2rem color-mix(in srgb, var(--bison-accent) 70%, transparent));
+	filter: drop-shadow(0 0 0.2rem color-mix(in srgb, var(--scalar-color-green) 70%, transparent));
 	stroke-dasharray: var(--len) var(--len);
 	stroke-dashoffset: var(--len);
 }
 
 .bison-flow__packet {
-	fill: var(--bison-accent);
+	fill: var(--scalar-color-green);
 	opacity: 0;
 	transform-box: fill-box;
 	transform-origin: center;
 	filter:
-		drop-shadow(0 0 0.16rem var(--bison-accent))
-		drop-shadow(0 0 0.4rem color-mix(in srgb, var(--bison-accent) 75%, transparent));
+		drop-shadow(0 0 0.16rem var(--scalar-color-green))
+		drop-shadow(0 0 0.4rem color-mix(in srgb, var(--scalar-color-green) 75%, transparent));
 }
 
 /* Each stage lights exactly one trace, one packet, one halo, one line. */
@@ -346,11 +464,22 @@
 
 .bison-flow[data-stage='1'] [data-zone='bison'] > .bison-flow__icon,
 .bison-flow[data-stage='2'] [data-zone='server'] > .bison-flow__icon,
-.bison-flow[data-stage='3'] [data-zone='app'] > .bison-flow__icon,
-.bison-flow[data-stage='4'] [data-zone='bison'] > .bison-flow__icon {
+.bison-flow[data-stage='3'] [data-zone='app'] > .bison-flow__icon {
 	transform-box: fill-box;
 	transform-origin: center;
 	animation: bison-receive 1400ms ease-in-out calc(var(--bison-step-duration, 3300ms) - 560ms) both;
+}
+
+/* Stage 4 is a short hop inside your app, so it runs on its own, faster clock. */
+.bison-flow[data-stage='4'] .bison-flow__trace[data-stage='4'],
+.bison-flow[data-stage='4'] .bison-flow__packet[data-stage='4'] {
+	animation-duration: var(--bison-handshake-duration, 1100ms);
+}
+
+.bison-flow[data-stage='4'] .bison-flow__iframe > .bison-flow__icon {
+	transform-box: fill-box;
+	transform-origin: center;
+	animation: bison-receive 1400ms ease-in-out calc(var(--bison-handshake-duration, 1100ms) - 560ms) both;
 }
 
 .bison-flow[data-stage='4'] .bison-flow__embed,
@@ -358,10 +487,12 @@
 	stroke-opacity: 1;
 }
 
-.bison-flow[data-stage='4'] :is(.bison-flow__iframe, .bison-flow__iframe-wire),
-.bison-flow[data-stage='5'] :is(.bison-flow__iframe, .bison-flow__iframe-wire),
-.bison-flow[data-stage='all'] :is(.bison-flow__iframe, .bison-flow__iframe-wire),
-.bison-flow:not([data-stage]) :is(.bison-flow__iframe, .bison-flow__iframe-wire) {
+/* The iframe wakes up when it is addressed (stage 4); its own channels to Bison
+   only light once it holds a session (stage 5). */
+.bison-flow:is([data-stage='4'], [data-stage='5'], [data-stage='all']) .bison-flow__iframe,
+.bison-flow:not([data-stage]) .bison-flow__iframe,
+.bison-flow:is([data-stage='5'], [data-stage='all']) .bison-flow__iframe-wire,
+.bison-flow:not([data-stage]) .bison-flow__iframe-wire {
 	opacity: 1;
 	filter: none;
 }
@@ -406,22 +537,20 @@
 	opacity: 1;
 }
 
-
-
 .bison-flow__securewire {
 	stroke: url(#bison-spectrum);
 	stroke-width: 3;
 	fill: none;
 	stroke-linecap: round;
-	filter: drop-shadow(0 0 0.16rem color-mix(in srgb, var(--bison-accent) 65%, transparent));
+	filter: drop-shadow(0 0 0.16rem color-mix(in srgb, var(--scalar-color-green) 65%, transparent));
 }
 
 .bison-flow__securepacket {
-	fill: var(--bison-panel-ink);
+	fill: var(--scalar-color-1);
 	opacity: 0;
 	transform-box: fill-box;
 	transform-origin: center;
-	filter: drop-shadow(0 0 0.28rem var(--bison-accent));
+	filter: drop-shadow(0 0 0.28rem var(--scalar-color-green));
 }
 
 .bison-flow[data-stage='5'] .bison-flow__securepacket {
@@ -506,110 +635,19 @@
 		transform: scale(1);
 		filter:
 			drop-shadow(0 2px 6px rgba(17, 24, 39, 0.18))
-			drop-shadow(0 0 0 rgba(64, 145, 107, 0));
+			drop-shadow(0 0 0 transparent);
 	}
 	25%,
 	55% {
 		transform: scale(1.08);
 		filter:
-			drop-shadow(0 0 0.3rem rgba(64, 145, 107, 0.75))
-			drop-shadow(0 0 0.9rem rgba(64, 145, 107, 0.38));
+			drop-shadow(0 0 0.3rem color-mix(in srgb, var(--scalar-color-green) 75%, transparent))
+			drop-shadow(0 0 0.9rem color-mix(in srgb, var(--scalar-color-green) 38%, transparent));
 	}
-}
-
-/* --------------------------------------------------------- Refinements */
-
-:where(html) {
-	scroll-behavior: smooth;
-}
-
-.sl-markdown-content :is(h2, h3)[id] {
-	scroll-margin-top: 5rem;
-}
-
-.sl-markdown-content h2 {
-	letter-spacing: -0.02em;
-}
-
-/* Tables adopt the system's border role and body-m scale. */
-.sl-markdown-content table {
-	font-size: 0.875rem;
-	line-height: 1.375rem;
-}
-
-.sl-markdown-content :is(td, th) {
-	border-color: var(--bison-border);
-}
-
-/* Code blocks read as system cards. */
-.sl-markdown-content .expressive-code .frame {
-	border-radius: var(--bison-radius-lg);
-}
-
-/* The hero supplies the page heading, so the generated title row is redundant. */
-body:has(.bison-hero) .content-panel:first-of-type {
-	display: none;
-}
-
-#starlight__sidebar {
-	font-size: 0.875rem;
-}
-
-.site-title img {
-	width: 2rem;
-	height: 2rem;
-}
-
-:root[data-theme='light'] .site-title img {
-	filter: invert(1);
-}
-
-.pagination-links {
-	display: flex;
-	border-top: 1px solid var(--bison-hairline);
-	padding-top: 1rem;
-}
-
-.pagination-links a {
-	flex: 0 0 auto;
-	width: auto;
-	margin-inline-start: auto;
-	padding: 0.5rem 0;
-	border: 0;
-	box-shadow: none;
-	font-size: 0;
-}
-
-.pagination-links a[rel='prev'] {
-	margin-inline: 0 auto;
-}
-
-.pagination-links a:hover {
-	border-color: transparent;
-	color: var(--sl-color-text-accent);
-}
-
-.pagination-links a br {
-	display: none;
-}
-
-.pagination-links .link-title {
-	font-size: 0.875rem;
-	font-weight: 600;
-	line-height: 1.25rem;
-}
-
-.pagination-links svg {
-	width: 1rem;
-	height: 1rem;
 }
 
 /* Honour the reader's setting: nothing moves, everything still reads. */
 @media (prefers-reduced-motion: reduce) {
-	:where(html) {
-		scroll-behavior: auto;
-	}
-
 	.bison-flow :is(.bison-flow__trace, .bison-flow__packet, .bison-flow__char, .bison-flow__icon, .bison-flow__iframe, .bison-flow__iframe-wire) {
 		animation: none !important;
 		transition: none !important;

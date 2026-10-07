@@ -1,6 +1,6 @@
 ---
 title: Embed the iframe
-description: Request a launch URL from your server, then render it in an iframe.
+description: Start a session from your server, load the iframe, and hand it a one-time launch token.
 tableOfContents:
   minHeadingLevel: 2
   maxHeadingLevel: 3
@@ -9,56 +9,118 @@ pagefind: true
 
 import Flow from '../../components/Flow.astro';
 
-<div class="bison-hero" not-content>
-  <h1 class="bison-hero__title">Two steps to<br /><em>an embedded</em> JIB Pay.</h1>
-  <p class="bison-hero__lede">One request from your server, one iframe on your page. Bison handles sign-in, navigation, and everything the user sees.</p>
+<p class="bison-title-link"><a href="/launch-api/">Launch API</a></p>
+
+Your server starts a session with Bison. Your page loads the iframe and hands it a one-time token. Bison renders every screen and takes every payment from there.
+
+<div class="bison-card not-content">
+  <div class="bison-card__header">Endpoints</div>
+  <ul class="bison-card__body">
+    <li><a href="/launch-api/#start-a-session"><span class="bison-card__method">POST</span> <span>/partner/energylink/embed-sessions</span></a></li>
+    <li><a href="/launch-api/#revoke-sessions"><span class="bison-card__method">POST</span> <span>/partner/energylink/embed-sessions/revoke</span></a></li>
+    <li><a href="/launch-api/#the-exchange-call"><span class="bison-card__method">POST</span> <span>/api/embeddable/iframe-sessions/exchange</span></a></li>
+  </ul>
 </div>
+
+<div class="bison-card not-content">
+  <div class="bison-card__header">Messages</div>
+  <ul class="bison-card__body">
+    <li><a href="/messages/#launch-handshake"><span>bison.embed.launchReady</span></a></li>
+    <li><a href="/messages/#launch-handshake"><span>bison.embed.launchToken</span></a></li>
+  </ul>
+</div>
+
+## How it works
+
+1. Your server calls Bison with two tokens: a machine token for your backend and the signed-in user's access token. Bison returns an iframe URL and a launch token.
+2. Your page loads the iframe from that URL.
+3. The iframe posts `bison.embed.launchReady`. Your page answers with `bison.embed.launchToken`.
+4. The iframe exchanges the launch token for a session. A launch token works once and expires within 30 seconds.
+5. The iframe calls Bison directly with that session. Your page and your server stay out of the data path.
+
+Your page owns navigation. It picks the first screen with `initialPath` and shows another screen by launching a new iframe. See [Screens and navigation](/screens/). The one exception is JIB setup: when the user finishes it, the iframe moves to JIB itself and posts `bison.embed.viewChanged`.
 
 <Flow />
 
 ## What you need
 
-Bison provides these values for each environment:
+| Value | Comes from | Used for |
+| --- | --- | --- |
+| API base URL | Bison, per environment | Where your server sends launch requests |
+| Machine credential | Bison | Your server mints short-lived Clerk machine tokens with it |
+| Embed origin | Bison, per environment | The origin of `iframeUrl`. Use it in your CSP `frame-src` and as the `postMessage` target |
+| User access token | Your identity provider | Tells Bison which user and organization is launching |
+| Site origin | You, to Bison | The exact origin of the page that hosts the iframe, for example `https://app.example.com` |
 
-| Value | Used as |
-| --- | --- |
-| API base URL | Where the launch request goes |
-| Integration App ID | `X-Bison-App-Id` header |
-| Integration App Secret | `X-Bison-App-Secret` header |
-| Partner Access Token | `X-Partner-Access-Token` header |
+Before your first launch, Bison configures its side for each environment:
 
-Bison also needs your site's origin (for example `https://app.example.com`) so it will allow your page to frame the embed. Send it before you start.
+- Your identity provider's issuer, and the audience your user tokens carry.
+- Your site origin, in the places the embed checks it: the list of origins allowed to launch, and the embed's own configuration, which Bison sets when it builds the embed. Each Bison environment trusts one host origin.
+- A machine credential for your backend.
+- A link from each of your users and organizations to a Bison user and working interest owner account. Bison creates these links. A launch for a user or organization with no link fails with `404` and `external_identity_not_mapped`. Other identity failures use their own codes: see [Launch API](/launch-api/#errors).
 
-## Step 1: Get a launch URL
+## Step 1: Start a session
 
-The launch request goes from your server, not the browser.
+Run this on your server. It needs both tokens, and neither may reach the browser.
 
-```http
-POST /api/embeddable/iframe-sessions
-Content-Type: application/json
-X-Bison-App-Id: <app-id>
-X-Bison-App-Secret: <app-secret>
-X-Partner-Access-Token: <partner-token>
+1. Mint a machine token. Bison accepts opaque Clerk machine-to-machine tokens that expire within 300 seconds. Always set `secondsUntilExpiration`: Clerk's default is a token that never expires, and Bison rejects it.
+2. Take the signed-in user's access token from your identity provider. Bison verifies it, so it must meet the rules in [Authentication](/authentication/#user-access-token).
+3. Call the launch endpoint.
+
+```js title="server.js"
+import { createClerkClient } from '@clerk/backend';
+
+const machineSecretKey = process.env.BISON_MACHINE_SECRET_KEY;
+const clerk = createClerkClient({ machineSecretKey });
+
+app.post('/bison/launch', async (req, res) => {
+  try {
+    const machine = await clerk.m2m.createToken({
+      machineSecretKey,
+      secondsUntilExpiration: 300,
+    });
+
+    const response = await fetch(
+      `${process.env.BISON_API_URL}/partner/energylink/embed-sessions`,
+      {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          authorization: `Bearer ${machine.token}`,
+          'x-energylink-user-authorization': `Bearer ${req.user.accessToken}`,
+        },
+        body: JSON.stringify({
+          audience: 'working_interest_owner',
+          parentOrigin: process.env.SITE_ORIGIN,
+          initialPath: req.body.initialPath,
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      console.error('Bison launch failed', response.status, await response.text());
+      return res.status(502).json({ error: 'launch_failed' });
+    }
+
+    const { data } = await response.json();
+    res
+      .set('cache-control', 'no-store')
+      .json({ iframeUrl: data.iframeUrl, launchToken: data.launchToken });
+  } catch (error) {
+    console.error('Bison launch error', error);
+    res.status(502).json({ error: 'launch_failed' });
+  }
+});
 ```
 
-```json
-{
-  "clientUserId": "user-123",
-  "audience": "working-interest-owner"
-}
-```
-
-`clientUserId` identifies the signed-in user in *your* system. `audience` is either `working-interest-owner` or `operator`.
-
-Try it before writing any code:
+Replace `req.user.accessToken` with however your server holds the current user's access token, and the environment variable names with your own. Log Bison's status and `errorCode`, as the sample does: they tell you which check failed. Try the same request without code, using the two tokens from the steps above:
 
 ```bash
-curl -X POST "$BISON_API_URL/api/embeddable/iframe-sessions" \
+curl -X POST "$BISON_API_URL/partner/energylink/embed-sessions" \
   -H "content-type: application/json" \
-  -H "x-bison-app-id: $BISON_APP_ID" \
-  -H "x-bison-app-secret: $BISON_APP_SECRET" \
-  -H "x-partner-access-token: $BISON_PARTNER_TOKEN" \
-  -d '{"clientUserId":"user-123","audience":"working-interest-owner"}'
+  -H "authorization: Bearer $MACHINE_TOKEN" \
+  -H "x-energylink-user-authorization: Bearer $USER_ACCESS_TOKEN" \
+  -d '{"audience":"working_interest_owner","parentOrigin":"https://app.example.com","initialPath":"/wio/dashboard"}'
 ```
 
 The response:
@@ -66,120 +128,144 @@ The response:
 ```json
 {
   "success": true,
+  "message": "Success",
   "data": {
-    "iframeUrl": "https://<embed-origin>/embed/payments?launchCode=<code>"
-  }
+    "iframeUrl": "https://<embed-origin>/embed",
+    "launchToken": "<43-character token>",
+    "expiresAt": "2026-10-07T07:15:30.482Z",
+    "audience": "working_interest_owner",
+    "module": "payments"
+  },
+  "errors": [],
+  "timestamp": "2026-10-07T07:15:00.482Z",
+  "traceId": null
 }
 ```
 
-Take `data.iframeUrl` and use it as-is. Don't modify the path or query string.
+- Use `iframeUrl` as returned. It carries no token and no screen. The first screen comes from `initialPath`.
+- `launchToken` works once and stops working at `expiresAt`, at most 30 seconds after the call. That time includes the iframe loading, so create the iframe straight after the launch call.
+- Take `parentOrigin` from your configuration, never from the request. It must be the exact origin of your page.
+- Send `Cache-Control: no-store` to your browser. The response carries a credential.
 
-### Expose it to your frontend
+The full request, response and error reference is in [Launch API](/launch-api/).
 
-Add one route that your page can call. It forwards the three headers and returns the URL:
+## Step 2: Load the iframe and answer `launchReady`
 
-```js
-app.get('/embed-url', async (req, res) => {
-  const bison = await fetch(
-    `${process.env.BISON_API_URL}/api/embeddable/iframe-sessions`,
-    {
+Your page creates the iframe and answers one message. The iframe posts `bison.embed.launchReady` once per handshake, when it is ready for a token. It doesn't retry, so attach your listener before you set `src`.
+
+```js title="page.js"
+const SANDBOX =
+  'allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-downloads';
+
+export async function openBison(container, initialPath) {
+  let stopFrame = () => {};
+  let stopped = false;
+  let quickFailures = 0;
+
+  async function launch() {
+    const res = await fetch('/bison/launch', {
       method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'x-bison-app-id': process.env.BISON_APP_ID,
-        'x-bison-app-secret': process.env.BISON_APP_SECRET,
-        'x-partner-access-token': process.env.BISON_PARTNER_TOKEN,
-      },
-      body: JSON.stringify({
-        clientUserId: req.user.id,
-        audience: 'working-interest-owner',
-      }),
-    },
-  );
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ initialPath }),
+    });
+    if (!res.ok) throw new Error('Launch failed');
 
-  const { data } = await bison.json();
-  res.set('cache-control', 'no-store').json({ iframeUrl: data.iframeUrl });
-});
+    const { iframeUrl, launchToken } = await res.json();
+    if (stopped) return;
+
+    const embedOrigin = new URL(iframeUrl).origin;
+    const startedAt = Date.now();
+
+    const frame = document.createElement('iframe');
+    frame.title = 'JIB Pay';
+    frame.setAttribute('sandbox', SANDBOX);
+    frame.style.cssText = 'display:block;width:100%;height:100%;border:0';
+
+    let sent = false;
+
+    const onMessage = (event) => {
+      if (event.origin !== embedOrigin || event.source !== frame.contentWindow) return;
+      const type = event.data?.type;
+
+      if (type === 'bison.embed.launchReady' && !sent) {
+        sent = true;
+        frame.contentWindow.postMessage(
+          { type: 'bison.embed.launchToken', launchToken },
+          embedOrigin,
+        );
+      } else if (type === 'bison.embed.sessionInvalidated') {
+        stopFrame();
+        // Stop after three quick failures in a row instead of looping forever.
+        quickFailures = Date.now() - startedAt < 60_000 ? quickFailures + 1 : 0;
+        if (quickFailures < 3) launch().catch(console.error);
+      }
+    };
+
+    stopFrame = () => {
+      window.removeEventListener('message', onMessage);
+      frame.remove();
+    };
+
+    window.addEventListener('message', onMessage);
+    frame.src = iframeUrl;
+    container.replaceChildren(frame);
+  }
+
+  await launch();
+
+  // Closes the iframe and stops any automatic relaunch.
+  return () => {
+    stopped = true;
+    stopFrame();
+  };
+}
 ```
 
-`req.user.id` is the only line specific to your app: however you identify the current user. The rest is the same in any language.
+Five rules keep this working:
 
-Read the credentials from environment variables or your secret manager, and keep the request on the server so they aren't exposed to the browser.
+- Attach the listener before you set `src`. A `launchReady` that arrives before your listener exists is lost, and the iframe stays on `Opening JIB Pay`.
+- Check `event.origin` against the embed origin and `event.source` against the iframe's window.
+- Reply only to `launchReady`, only to the embed origin, never to `'*'`, and at most once per launch token.
+- Answer every `launchReady` with a freshly issued token. The iframe accepts the first valid token of each handshake and sends it to Bison once, with no automatic retry. If you reply with a used token, the iframe loops between `launchReady` and `sessionInvalidated`.
+- Your page's origin must be the origin Bison configured in the embed. If it differs, the browser drops the iframe's messages, your page never receives `launchReady`, and the iframe stays on `Opening JIB Pay`. Ask Bison to confirm the embed's origin.
 
-## Step 2: Render the iframe
+Every message your page can send to or receive from the iframe is listed in [Messages](/messages/).
 
-```html
-<iframe id="bison" title="JIB Pay" style="width:100%;height:700px;border:0"></iframe>
-```
+## Step 3: Handle expiry
 
-```js
-const { iframeUrl } = await (await fetch('/embed-url')).json();
-document.getElementById('bison').src = iframeUrl;
-```
+A session lasts at most 60 minutes and is never renewed in place. When it ends, or when Bison rejects it, the iframe posts `bison.embed.sessionInvalidated` and then asks for a fresh token with another `launchReady`. You have two ways to recover:
 
-Request the URL when you're ready to show the iframe. Launch codes are short-lived, so don't fetch one and hold it.
+- **Relaunch.** Remove the iframe, run Step 1 again and mount a new iframe. The sample above does this, and it starts again from the `initialPath` you sent.
+- **Answer in place.** Run Step 1 on your server and reply to the next `launchReady` with the new token. The iframe shows `Opening JIB Pay` while it waits, with no time limit, and keeps the screen the user was on.
 
-### Sizing
+Both options need a current user access token on your server. Refresh it first if it has expired.
 
-The embed fills whatever box you give it, but has no natural height. Give the iframe an explicit height or stretch it in a flex layout, or it will collapse.
+## Frame requirements
 
-### Content Security Policy
-
-If your site sends a CSP, allow the embed origin:
+**Content Security Policy.** If your page sends one, allow the embed origin:
 
 ```http
 Content-Security-Policy: frame-src https://<embed-origin>;
 ```
 
-### Sandbox
+**Size.** The embed fills the iframe and scrolls inside it. It never reports a height, so give the iframe a definite height, or stretch it in a flex or grid layout.
 
-You don't need a `sandbox` attribute. If you add one, it must include:
+**Sandbox.** You don't need a `sandbox` attribute. If you add one, use the set the reference host ships:
 
-```
-allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-downloads
-```
-
-Leaving any of these out breaks navigation, downloads, or bank linking.
-
-## Reloading
-
-Each iframe needs its own launch URL, and each URL works once. Request a fresh one whenever you mount or reload the embed. Reusing a URL shows **Link expired**.
-
-The user can keep navigating inside the iframe without new URLs. You only need one when the iframe itself is created or recreated.
-
-## Optional: listening for events
-
-The iframe posts two messages to your page. Ignore both and the embed still works.
-
-| Message | Meaning |
+| Token | Why the embed needs it |
 | --- | --- |
-| `bison.embed.viewChanged` | The user opened a different screen. `event.data.view` is `dashboard`, `jib`, `revenue`, `reports`, or `settings`. |
-| `bison.embed.sessionInvalidated` | The session expired. Fetch a new URL and reset `src` if you want to recover automatically. |
+| `allow-scripts` | The embed is a script-driven web app |
+| `allow-same-origin` | The iframe calls Bison as itself and keeps a setup draft in `sessionStorage`. Without this token its origin is opaque and those calls fail. Its messages also arrive with `event.origin` set to `'null'`, so your origin check ignores `launchReady` |
+| `allow-popups`, `allow-popups-to-escape-sandbox` | Bank linking opens a popup with `window.open`. `allow-popups` permits it. `allow-popups-to-escape-sandbox` lets the popup run without your sandbox's restrictions, as in the reference host |
+| `allow-downloads` | Invoice and report downloads |
+| `allow-forms` | Form submission inside the app. The reference host includes it |
 
-```js
-window.addEventListener('message', (event) => {
-  if (event.origin !== 'https://<embed-origin>') return;
+**Popups.** Bank linking opens a popup window from the embed origin. The user's browser must allow it.
 
-  if (event.data?.type === 'bison.embed.viewChanged') {
-    // e.g. sync your own breadcrumb or URL
-  }
-});
-```
+**HTTPS.** Serve your page over HTTPS. Launch rejects a `parentOrigin` that is not HTTPS, except `localhost`, and card entry does not load in a frame whose referrer is plain HTTP.
 
-Always check `event.origin` first.
+## Next
 
-## Opening a specific screen
-
-The launch URL always opens the default screen for the audience. There's no parameter to pick a different one.
-
-To open a specific screen such as Settings, add a second route that requests a launch URL and points it at that screen before returning it to the browser. Ask Bison for the correct path rather than guessing it in browser code.
-
-## What you don't need to build
-
-None of the following is necessary:
-
-- Validating the returned `iframeUrl`. Use it as-is.
-- Building embed paths in the browser. The returned URL already points at the right screen.
-- Adding a message listener, unless you want the events above.
-- Storing or caching launch URLs. Request a fresh one each time.
-- Tracking which screen the user is on. The iframe handles its own navigation.
+- [Authentication](/authentication/): what each credential proves and how long it lives.
+- [Screens and navigation](/screens/): open a specific screen and understand who sees what.
+- [Troubleshooting](/troubleshooting/): symptoms, causes and fixes.

@@ -1,0 +1,456 @@
+---
+import { Image } from 'astro:assets';
+import { getCollection, render } from 'astro:content';
+import { Icon } from '@astrojs/starlight/components';
+import Search from '@astrojs/starlight/components/Search.astro';
+import logo from '../assets/bison-logo-white.png';
+
+const { sidebar, siteTitle, siteTitleHref } = Astro.locals.starlightRoute;
+
+/** For each h2 section of a page's markdown, the method of a code block in it that opens with a request line (`POST /path`). */
+function sectionMethods(markdown = '') {
+	const methods: (string | undefined)[] = [];
+	let fence = '';
+	let firstLine = false;
+	for (const line of markdown.split('\n')) {
+		const marker = line.match(/^\s*(`{3,}|~{3,})/)?.[1];
+		if (fence) {
+			if (marker?.startsWith(fence)) fence = '';
+			else if (firstLine && methods.length)
+				methods[methods.length - 1] ||= line.match(/^(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS) \//)?.[1];
+			firstLine = false;
+		} else if (marker) {
+			fence = marker;
+			firstLine = true;
+		} else if (line.trimStart().startsWith('## ')) {
+			methods.push(undefined);
+		}
+	}
+	return methods;
+}
+
+// One group per page; its children are the page's h2 sections.
+const docs = await getCollection('docs');
+const groups = await Promise.all(
+	sidebar
+		.filter((entry) => entry.type === 'link')
+		.map(async (link) => {
+			const doc = docs.find(({ id }) => id.replace(/^index$/, '') === link.href.replace(/^\/|\/$/g, ''));
+			const methods = sectionMethods(doc?.body);
+			const headings = doc ? (await render(doc)).headings : [];
+			const sections = headings.filter((h) => h.depth === 2).map((h, i) => ({ ...h, method: methods[i] }));
+			return { link, sections };
+		})
+);
+---
+
+<a class="bison-logo" href={siteTitleHref}>
+	<Image src={logo} alt={siteTitle} width={40} height={40} densities={[1, 2]} loading="eager" />
+</a>
+
+<div class="bison-search"><Search /></div>
+
+<ul class="bison-nav">
+	{
+		groups.map(({ link, sections }) => (
+			<li>
+				<a href={link.href} aria-current={link.isCurrent ? 'page' : undefined}>
+					{link.label}
+				</a>
+				{sections.length > 0 && (
+					<details open>
+						<summary aria-label={link.label}>
+							<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+								<path d="m5.5 3 5 5-5 5" />
+							</svg>
+						</summary>
+						<ul>
+							{sections.map(({ slug, text, method }) => (
+								<li>
+									<a href={`${link.href}#${slug}`}>
+										<span class="label">{text}</span>
+										{method && <span class="method">{method}</span>}
+									</a>
+								</li>
+							))}
+						</ul>
+					</details>
+				)}
+			</li>
+		))
+	}
+</ul>
+{/* Before first paint: restore the tree's scroll position, like Starlight's own
+    sidebar, then bring the current page into view if it is still off screen. */}
+<script is:inline>
+	try {
+		const nav = document.querySelector('.bison-nav');
+		nav.scrollTop = sessionStorage.getItem('bison-nav-scroll');
+		const box = nav.getBoundingClientRect();
+		const current = nav.querySelector('a[aria-current="page"]').getBoundingClientRect();
+		if (current.top < box.top || current.bottom > box.bottom) nav.scrollTop += current.top - box.top - 12;
+	} catch {}
+</script>
+
+<div class="bison-foot">
+	<span>{siteTitle}</span>
+	<button type="button" class="bison-switch" role="switch" aria-checked="true" aria-label="Dark mode">
+		<span class="knob">
+			<Icon name="sun" class="sun" size="12px" />
+			<Icon name="moon" class="moon" size="12px" />
+		</span>
+	</button>
+</div>
+
+<script>
+	const root = document.documentElement;
+	const themeKey = 'starlight-theme';
+	let links: HTMLAnchorElement[] = [];
+	let targets: (HTMLElement | null)[] = [];
+	let active = -2;
+
+	function setTheme(theme = 'dark') {
+		root.dataset.theme = theme;
+		document.querySelector('.bison-switch')?.setAttribute('aria-checked', String(theme === 'dark'));
+	}
+
+	// Scroll-spy: the current page's last section whose heading has passed the top quarter of
+	// the viewport, or the last section once the page is scrolled to the bottom.
+	function spy() {
+		const atBottom = innerHeight + scrollY >= root.scrollHeight - 2;
+		let current = atBottom ? links.length - 1 : -1;
+		if (!atBottom) {
+			targets.forEach((target, i) => {
+				if (target && target.getBoundingClientRect().top < innerHeight / 4) current = i;
+			});
+		}
+		if (current === active) return;
+		active = current;
+		links.forEach((link, i) =>
+			i === current ? link.setAttribute('aria-current', 'true') : link.removeAttribute('aria-current')
+		);
+		reveal(links[current]);
+	}
+
+	// Keep the active section in view inside the tree, as Scalar's sidebar does.
+	function reveal(link?: HTMLElement) {
+		const nav = link?.closest('.bison-nav');
+		if (!link || !nav) return;
+		const box = nav.getBoundingClientRect();
+		const { top, bottom } = link.getBoundingClientRect();
+		if (top < box.top) nav.scrollTop -= box.top - top + 12;
+		else if (bottom > box.bottom) nav.scrollTop += bottom - box.bottom + 12;
+	}
+
+	function init() {
+		setTheme(root.dataset.theme);
+		links = [...document.querySelectorAll<HTMLAnchorElement>('.bison-nav a[aria-current="page"] + details a')];
+		targets = links.map((link) => document.getElementById(decodeURIComponent(link.hash.slice(1))));
+		active = -2;
+		spy();
+	}
+
+	// The theme switch stores what Starlight's ThemeProvider reads before first paint.
+	document.addEventListener('click', (event) => {
+		// On phones the tree is hidden at load, so reveal the current page when the menu opens.
+		if ((event.target as Element).closest('starlight-menu-button'))
+			requestAnimationFrame(() => reveal(document.querySelector<HTMLElement>('.bison-nav a[aria-current="page"]') ?? undefined));
+		if (!(event.target as Element).closest('.bison-switch')) return;
+		const theme = root.dataset.theme === 'dark' ? 'light' : 'dark';
+		setTheme(theme);
+		try {
+			localStorage.setItem(themeKey, theme);
+		} catch {}
+	});
+	// Until the reader picks a theme, follow the OS.
+	matchMedia('(prefers-color-scheme: light)').addEventListener('change', ({ matches }) => {
+		try {
+			if (!localStorage.getItem(themeKey)) setTheme(matches ? 'light' : 'dark');
+		} catch {}
+	});
+	addEventListener('scroll', spy, { passive: true });
+	addEventListener('pagehide', () => {
+		try {
+			sessionStorage.setItem('bison-nav-scroll', String(document.querySelector('.bison-nav')?.scrollTop ?? 0));
+		} catch {}
+	});
+	init();
+	document.addEventListener('astro:page-load', init);
+</script>
+
+<style>
+	/* Starlight's sidebar frame: full height (Header.astro drops the top bar), 288px, flat. */
+	:global(:root[data-has-sidebar]) {
+		--sl-sidebar-width: 18rem;
+	}
+
+	:global(.sidebar-pane) {
+		background: var(--scalar-background-1);
+		scrollbar-gutter: auto;
+	}
+
+	:global(.sidebar-content) {
+		min-height: 0;
+		gap: 0;
+		padding: 0;
+	}
+
+	@media (min-width: 50rem) {
+		:global(.sidebar-pane) {
+			border-inline-end: var(--scalar-hairline);
+		}
+
+		:global(.sidebar-content::after) {
+			display: none;
+		}
+	}
+
+	/* Logo: on small screens the top bar shows it instead. */
+	.bison-logo {
+		display: none;
+		align-self: flex-start;
+		margin: 16px;
+	}
+
+	.bison-logo :global(img) {
+		display: block;
+		width: auto;
+		height: 40px;
+	}
+
+	:global([data-theme='light']) .bison-logo :global(img) {
+		filter: invert(1);
+	}
+
+	@media (min-width: 50rem) {
+		.bison-logo {
+			display: block;
+		}
+	}
+
+	/* Search: Starlight's trigger, restyled. */
+	.bison-search {
+		padding: 12px 12px 0;
+	}
+
+	.bison-search :global(button[data-open-modal]) {
+		gap: 6px;
+		width: 100%;
+		max-width: none;
+		height: 32px;
+		padding: 0 4px 0 8px;
+		border: var(--scalar-hairline);
+		border-radius: var(--scalar-radius);
+		background: var(--scalar-sidebar-search-background);
+		color: var(--scalar-color-3);
+		font-size: 14px;
+	}
+
+	.bison-search :global(button[data-open-modal] > svg) {
+		width: 16px;
+		height: 16px;
+	}
+
+	.bison-search :global(button[data-open-modal] > span) {
+		display: block;
+	}
+
+	.bison-search :global(button[data-open-modal] > kbd) {
+		padding: 4px 5px;
+		border: var(--scalar-hairline);
+		border-radius: var(--scalar-radius);
+		background: none;
+		color: var(--scalar-color-2);
+		font-size: 12px;
+		font-weight: 500;
+		line-height: 1;
+		text-transform: uppercase;
+	}
+
+	/* The dialog lives in the drawer, which is hidden on small screens until opened. */
+	.bison-search :global(dialog) {
+		visibility: visible;
+		border: var(--scalar-hairline);
+	}
+
+	/* Nav tree: the only part of the sidebar that scrolls. */
+	.bison-nav {
+		flex: 1;
+		min-height: 0;
+		overflow-y: auto;
+		overscroll-behavior: contain;
+		scrollbar-width: thin;
+		scrollbar-color: transparent transparent;
+		padding: 12px;
+	}
+
+	.bison-nav:hover {
+		scrollbar-color: color-mix(in srgb, var(--scalar-color-1) 18%, transparent) transparent;
+	}
+
+	.bison-nav,
+	.bison-nav ul {
+		display: grid;
+		align-content: start;
+		gap: 1px;
+		margin: 0;
+		list-style: none;
+	}
+
+	.bison-nav ul {
+		padding: 0;
+	}
+
+	.bison-nav > li {
+		position: relative;
+	}
+
+	.bison-nav a {
+		display: flex;
+		align-items: flex-start;
+		padding: 8px;
+		border-radius: var(--scalar-radius);
+		color: var(--scalar-color-2);
+		font-size: 14px;
+		line-height: 16px;
+		text-decoration: none;
+		overflow-wrap: anywhere;
+	}
+
+	.bison-nav > li > a {
+		padding-inline-end: 32px;
+	}
+
+	.bison-nav a:hover,
+	.bison-nav > li:has(> details > summary:hover) > a {
+		background-color: var(--scalar-background-2);
+	}
+
+	.bison-nav > li > a[aria-current='page'] {
+		color: var(--scalar-color-1);
+		font-weight: 500;
+	}
+
+	.bison-nav a:focus-visible,
+	.bison-nav summary:focus-visible {
+		outline: 2px solid var(--scalar-color-1);
+		outline-offset: -2px;
+	}
+
+	/* The group toggle sits over the right end of the page row. */
+	.bison-nav summary {
+		position: absolute;
+		top: 0;
+		right: 0;
+		display: grid;
+		place-items: center;
+		width: 32px;
+		height: 32px;
+		border-radius: var(--scalar-radius);
+		color: var(--scalar-color-2);
+		cursor: pointer;
+	}
+
+	.bison-nav summary::-webkit-details-marker {
+		display: none;
+	}
+
+	details[open] > summary svg {
+		rotate: 90deg;
+	}
+
+	/* Sections: a 20px indent column with a 1px rule, drawn over hover and active fills too. */
+	.bison-nav details > ul,
+	.bison-nav details a {
+		background: linear-gradient(var(--scalar-border-color) 0 0) 16px 0 / 1px 100% no-repeat;
+	}
+
+	.bison-nav details > ul {
+		margin-top: 1px;
+	}
+
+	.bison-nav details a {
+		padding-inline-start: 28px;
+	}
+
+	.bison-nav details a[aria-current='true'] {
+		background-color: var(--scalar-background-2);
+		color: var(--scalar-color-1);
+		font-weight: 500;
+	}
+
+	.label {
+		flex: 1;
+	}
+
+	.method {
+		margin-inline-start: 8px;
+		color: var(--scalar-color-green);
+		font: 600 10px/14px var(--scalar-font-code);
+		text-transform: uppercase;
+	}
+
+	/* Bottom row, pinned below the tree. */
+	.bison-foot {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 0 12px 12px;
+		color: var(--scalar-color-2);
+		font-size: 13px;
+	}
+
+	.bison-switch {
+		position: relative;
+		flex: none;
+		width: 38px;
+		height: 24px;
+		padding: 0;
+		border: var(--scalar-hairline);
+		border-radius: 12px;
+		background: var(--scalar-background-3);
+		color: var(--scalar-color-1);
+		cursor: pointer;
+	}
+
+	:global([data-theme='dark']) .bison-switch {
+		filter: brightness(1.45);
+	}
+
+	.bison-switch:focus-visible {
+		outline: 2px solid var(--scalar-color-1);
+		outline-offset: 2px;
+	}
+
+	.knob {
+		position: absolute;
+		top: 0;
+		left: 0;
+		display: grid;
+		place-items: center;
+		width: 23px;
+		height: 23px;
+		border: var(--scalar-hairline);
+		border-radius: 50%;
+		background: var(--scalar-background-1);
+	}
+
+	:global([data-theme='dark']) .knob {
+		translate: 14px;
+	}
+
+	:global([data-theme='dark']) .knob :global(.sun),
+	:global([data-theme='light']) .knob :global(.moon) {
+		display: none;
+	}
+
+	@media (prefers-reduced-motion: no-preference) {
+		summary svg {
+			transition: rotate 150ms ease;
+		}
+
+		.knob {
+			transition: translate 200ms ease;
+		}
+	}
+</style>

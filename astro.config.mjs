@@ -2,8 +2,6 @@
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
 
-import mdx from '@astrojs/mdx';
-
 // https://astro.build/config
 export default defineConfig({
     integrations: [starlight({
@@ -14,14 +12,23 @@ export default defineConfig({
             replacesTitle: true,
         },
         description:
-            'Embed Bison JIB Pay in your application with a server-side launch request and an iframe.',
-        customCss: ['./src/styles/theme.css'],
+            'Embed Bison JIB Pay in your application: start a session from your server, load an iframe, and hand it a one-time launch token.',
+        customCss: ['./src/styles/theme.css', './src/styles/layout.css'],
         components: {
             Head: './src/components/Head.astro',
+            Header: './src/components/Header.astro',
+            Sidebar: './src/components/Sidebar.astro',
+            PageSidebar: './src/components/PageSidebar.astro',
+            PageTitle: './src/components/PageTitle.astro',
+            MarkdownContent: './src/components/MarkdownContent.astro',
         },
         sidebar: [
             { label: 'Guide', slug: 'index' },
+            { label: 'Authentication', slug: 'authentication' },
+            { label: 'Screens', slug: 'screens' },
+            { label: 'Launch API', slug: 'launch-api' },
+            { label: 'Messages', slug: 'messages' },
             { label: 'Troubleshooting', slug: 'troubleshooting' },
         ],
-		}), mdx()],
+		})],
 });

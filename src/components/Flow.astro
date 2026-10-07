@@ -4,7 +4,9 @@
  *
  * Topology mirrors the real relationship: the iframe is nested inside your
  * app, not a peer of it, and Bison Services is one boundary rather than a
- * single endpoint. Stage 5 shows the iframe talking to those services over
+ * single endpoint. Stage 4 is the one hop that touches your page: it answers
+ * the iframe's ready message with the launch token. Stage 5 shows the iframe
+ * trading that token for a session, then talking to those services over
  * several channels at once.
  *
  * Node icons live in public/flow/. A missing image degrades to a labelled
@@ -14,32 +16,33 @@
 const STAGES = [
 	{
 		n: 1,
-		lead: 'Your server asks Bison for a launch URL',
-		sub: 'The three credentials never leave your backend.',
+		lead: 'Your server asks Bison to start a session',
+		sub: "It sends a machine token and the user's token. Neither reaches the browser.",
 	},
 	{
 		n: 2,
-		lead: 'Bison returns a short-lived URL',
-		sub: 'It carries a launch code that works once.',
+		lead: 'Bison returns a launch token',
+		sub: 'It works once and expires within 30 seconds.',
 	},
 	{
 		n: 3,
-		lead: 'Your server hands the URL to your page',
-		sub: 'Your page sets it as the iframe source.',
+		lead: 'Your server passes the token to your page',
+		sub: 'Your page loads the iframe and waits for it to say it is ready.',
 	},
 	{
 		n: 4,
-		lead: 'The iframe redeems the launch code',
-		sub: 'Bison and the iframe finish the handshake alone.',
+		lead: "Your page answers the iframe's ready message",
+		sub: 'The reply carries the launch token, addressed to the embed origin only.',
 	},
 	{
 		n: 5,
-		lead: 'From here, the iframe runs the whole product',
-		sub: 'Payments, JIB, reports and settings talk to Bison directly. None of it is yours to build.',
+		lead: 'The iframe trades the token for a session',
+		sub: 'From there it calls Bison directly. Your page and your server stay out of the data path.',
 	},
 ];
 const STAGE5_DURATION = 1200;
 const STEP_DURATION = 3300;
+const HANDSHAKE_DURATION = 1100;
 
 const splitWords = (text: string, offset = 0) => {
 	let cursor = offset;
@@ -52,7 +55,7 @@ const splitWords = (text: string, offset = 0) => {
 };
 ---
 
-<figure class="bison-flow" data-bison-flow style={`--bison-step-duration:${STEP_DURATION}ms;--bison-stage5-duration:${STAGE5_DURATION}ms`}>
+<figure class="bison-flow" data-bison-flow style={`--bison-step-duration:${STEP_DURATION}ms;--bison-handshake-duration:${HANDSHAKE_DURATION}ms;--bison-stage5-duration:${STAGE5_DURATION}ms`}>
 	<div class="bison-flow__stage" aria-hidden="true">
 		<div class="bison-flow__narration">
 			{
@@ -61,7 +64,7 @@ const splitWords = (text: string, offset = 0) => {
 						<b>
 							{splitWords(s.lead).map(({ word, start, space }) => (
 								<span class="bison-flow__word">
-									{space !== null && <span class="bison-flow__char" style={`--char:${space}`}>{'\u00a0'}</span>}
+									{space !== null && <span class="bison-flow__char" style={`--char:${space}`}>{' '}</span>}
 									{Array.from(word).map((char, index) => <span class="bison-flow__char" style={`--char:${start + index}`}>{char}</span>)}
 								</span>
 							))}
@@ -69,7 +72,7 @@ const splitWords = (text: string, offset = 0) => {
 						<span>
 							{splitWords(s.sub, s.lead.length + 6).map(({ word, start, space }) => (
 								<span class="bison-flow__word">
-									{space !== null && <span class="bison-flow__char" style={`--char:${space}`}>{'\u00a0'}</span>}
+									{space !== null && <span class="bison-flow__char" style={`--char:${space}`}>{' '}</span>}
 									{Array.from(word).map((char, index) => <span class="bison-flow__char" style={`--char:${start + index}`}>{char}</span>)}
 								</span>
 							))}
@@ -82,9 +85,11 @@ const splitWords = (text: string, offset = 0) => {
 
 	<svg viewBox="12 8 636 376" role="img" aria-labelledby="bison-flow-title">
 		<title id="bison-flow-title">
-			Your server requests a launch URL from Bison Services and receives a short-lived URL. Your
-			page sets that URL as the source of an iframe nested inside your app. The iframe then
-			redeems the launch code and communicates with Bison Services directly.
+			Your server asks Bison Services to start a session, sending a machine token and the user's
+			token, and receives a launch token. Your server passes the token to your page, which loads
+			an iframe nested inside your app. The iframe says it is ready, and your page answers with
+			the launch token. The iframe then trades the token for a session and communicates with
+			Bison Services directly.
 		</title>
 
 		<defs>
@@ -92,13 +97,13 @@ const splitWords = (text: string, offset = 0) => {
 				<circle cx="4" cy="4" r="2.8" fill="context-stroke" />
 			</marker>
 			<marker id="bison-secure-arrow" viewBox="0 0 8 8" refX="4" refY="4" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse">
-				<circle cx="4" cy="4" r="2.8" fill="#40916b" />
+				<circle cx="4" cy="4" r="2.8" style="fill: var(--scalar-color-green)" />
 			</marker>
 			<linearGradient id="bison-spectrum" gradientUnits="userSpaceOnUse" x1="320" y1="0" x2="620" y2="0">
-				<stop offset="0%" stop-color="#40916b"></stop>
-				<stop offset="34%" stop-color="#3c83f6"></stop>
-				<stop offset="68%" stop-color="#7c3aed"></stop>
-				<stop offset="100%" stop-color="#40916b"></stop>
+				<stop offset="0%" style="stop-color: var(--scalar-color-green)"></stop>
+				<stop offset="34%" style="stop-color: var(--scalar-color-blue)"></stop>
+				<stop offset="68%" style="stop-color: var(--scalar-color-purple)"></stop>
+				<stop offset="100%" style="stop-color: var(--scalar-color-green)"></stop>
 				<animate attributeName="x1" values="260;380" dur={`${STAGE5_DURATION}ms`} repeatCount="indefinite"></animate>
 				<animate attributeName="x2" values="560;680" dur={`${STAGE5_DURATION}ms`} repeatCount="indefinite"></animate>
 			</linearGradient>
@@ -115,15 +120,15 @@ const splitWords = (text: string, offset = 0) => {
 		<g class="bison-flow__zone" data-zone="app">
 			<rect class="bison-flow__zonebox" x="140" y="212" width="352" height="160" rx="12" />
 			<text class="bison-flow__zonename" x="164" y="236" text-anchor="start">Your app</text>
-			<image href="/flow/page.png" x="162" y="256" width="72" height="72" class="bison-flow__icon" />
-			<text class="bison-flow__sub" x="198" y="346" text-anchor="middle">your page</text>
+			<image href="/flow/page.png" x="158" y="262" width="60" height="60" class="bison-flow__icon" />
+			<text class="bison-flow__sub" x="188" y="346" text-anchor="middle">your page</text>
 
 			<!-- the embed, nested -->
 			<g class="bison-flow__iframe">
-				<rect class="bison-flow__embed" x="256" y="244" width="220" height="116" rx="10" data-ring="iframe" />
+				<rect class="bison-flow__embed" x="256" y="244" width="220" height="116" rx="10" />
 				<image href="/flow/iframe.webp" x="332" y="252" width="68" height="68" class="bison-flow__icon" />
 				<text class="bison-flow__embedname" x="366" y="336">&lt;iframe /&gt;</text>
-				<text class="bison-flow__sub" x="366" y="352" text-anchor="middle">redeems the code</text>
+				<text class="bison-flow__sub" x="366" y="352" text-anchor="middle">trades it for a session</text>
 			</g>
 		</g>
 
@@ -139,8 +144,10 @@ const splitWords = (text: string, offset = 0) => {
 		<path class="bison-flow__wire" d="M68 80 V56 Q68 44 80 44 H352" marker-end="url(#bison-arrow)" />
 		<path class="bison-flow__wire" d="M352 122 H110" marker-end="url(#bison-arrow)" />
 		<!-- 3: server down into your app -->
-		<path class="bison-flow__wire" d="M68 204 V272 Q68 292 88 292 H162" marker-end="url(#bison-arrow)" />
-		<!-- 4 + 5: the iframe's own channels up to Bison -->
+		<path class="bison-flow__wire" d="M68 204 V272 Q68 292 88 292 H158" marker-end="url(#bison-arrow)" />
+		<!-- 4: your page answers the iframe -->
+		<path class="bison-flow__wire" d="M218 292 H256" marker-end="url(#bison-arrow)" />
+		<!-- 5: the iframe's own channels up to Bison -->
 		<path class="bison-flow__wire bison-flow__iframe-wire" d="M512 166 V246 Q512 266 492 266 H476" marker-end="url(#bison-arrow)" />
 		<path class="bison-flow__wire bison-flow__iframe-wire" d="M476 302 H548 Q568 302 568 282 V166" marker-end="url(#bison-arrow)" />
 		<path class="bison-flow__wire bison-flow__iframe-wire" d="M624 166 V318 Q624 338 604 338 H476" marker-end="url(#bison-arrow)" />
@@ -148,13 +155,13 @@ const splitWords = (text: string, offset = 0) => {
 		<!-- ── animated traces ── -->
 		<path class="bison-flow__trace" data-trace data-stage="1" d="M68 80 V56 Q68 44 80 44 H352" />
 		<path class="bison-flow__trace" data-trace data-stage="2" d="M352 122 H110" />
-		<path class="bison-flow__trace" data-trace data-stage="3" d="M68 204 V272 Q68 292 88 292 H162" />
-		<path class="bison-flow__trace" data-trace data-stage="4" d="M476 302 H548 Q568 302 568 282 V166" />
+		<path class="bison-flow__trace" data-trace data-stage="3" d="M68 204 V272 Q68 292 88 292 H158" />
+		<path class="bison-flow__trace" data-trace data-stage="4" d="M218 292 H256" />
 
 		<circle class="bison-flow__packet" data-stage="1" r="4.5" style="offset-path:path('M68 80 V56 Q68 44 80 44 H352')"></circle>
 		<circle class="bison-flow__packet" data-stage="2" r="4.5" style="offset-path:path('M352 122 H110')"></circle>
-		<circle class="bison-flow__packet" data-stage="3" r="4.5" style="offset-path:path('M68 204 V272 Q68 292 88 292 H162')"></circle>
-		<circle class="bison-flow__packet" data-stage="4" r="4.5" style="offset-path:path('M476 302 H548 Q568 302 568 282 V166')"></circle>
+		<circle class="bison-flow__packet" data-stage="3" r="4.5" style="offset-path:path('M68 204 V272 Q68 292 88 292 H158')"></circle>
+		<circle class="bison-flow__packet" data-stage="4" r="4.5" style="offset-path:path('M218 292 H256')"></circle>
 
 		<!-- ── stage 5: several channels at once, abstracted ── -->
 		<g class="bison-flow__secure" data-secure>
@@ -175,13 +182,6 @@ const splitWords = (text: string, offset = 0) => {
 
 	for (const flow of document.querySelectorAll<HTMLElement>('[data-bison-flow]')) {
 		const svg = flow.querySelector('svg')!;
-		const narration = flow.querySelector<HTMLElement>('.bison-flow__narration')!;
-		const lines = narration.querySelectorAll<HTMLElement>('.bison-flow__line');
-		const fitNarration = () => {
-			narration.style.height = `${Math.max(...Array.from(lines, (line) => line.scrollHeight))}px`;
-		};
-		new ResizeObserver(fitNarration).observe(flow);
-		fitNarration();
 
 		// Measure each trace so the draw reads as one continuous line.
 		for (const trace of svg.querySelectorAll<SVGPathElement>('[data-trace]')) {
@@ -231,10 +231,12 @@ const splitWords = (text: string, offset = 0) => {
 		};
 
 		// Only run while visible, so an offscreen loop never burns frames.
+		let inView = false;
 		const observer = new IntersectionObserver(
 			(entries) => {
 				for (const entry of entries) {
-					if (entry.isIntersecting) start();
+					inView = entry.isIntersecting;
+					if (inView && !document.hidden) start();
 					else stop();
 				}
 			},
@@ -244,6 +246,7 @@ const splitWords = (text: string, offset = 0) => {
 		observer.observe(flow);
 		document.addEventListener('visibilitychange', () => {
 			if (document.hidden) stop();
+			else if (inView) start();
 		});
 	}
 </script>

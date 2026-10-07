@@ -4,15 +4,12 @@
   "version": "0.0.1",
   "scripts": {
     "dev": "astro dev",
-    "start": "astro dev",
     "build": "astro build",
-    "preview": "astro preview",
-    "astro": "astro"
+    "preview": "astro preview"
   },
   "dependencies": {
-    "@astrojs/mdx": "^7.0.6",
     "@astrojs/starlight": "^0.41.7",
     "astro": "^7.1.6",
-    "sharp": "^0.35.3"
+    "hast-util-from-html": "^2.0.3"
   }
 }

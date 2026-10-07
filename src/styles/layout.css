@@ -1,0 +1,209 @@
+/* Page layout: frame widths, two-column sections, page title, cards.
+ * Measurements follow the Scalar reference. Colors and fonts come from the
+ * --scalar-* tokens in theme.css. MarkdownContent.astro builds the markup:
+ * section.bison-section > div.bison-row > div.bison-col (+ div.bison-aside).
+ */
+
+/* ---------------------------------------------------------------- Frame */
+
+/* PageSidebar.astro gives the main pane the full width beside the sidebar.
+   Rows respond to that width, not the viewport's, like Scalar's. */
+main {
+	container: bison-main / inline-size;
+}
+
+.content-panel {
+	padding: 0 60px;
+	border: 0;
+}
+
+/* The 404 page is a splash page: it keeps Starlight's space above its hero. */
+[data-has-hero] .content-panel {
+	padding-block: 1.5rem;
+}
+
+/* Left-aligned up to 1540px, instead of a centred 45rem column. */
+.content-panel .sl-container {
+	max-width: 1540px;
+	margin-inline: 0;
+}
+
+/* Pagination opens with its own hairline, 90px under the last section, like
+   the next section would. Edit and last-updated links are not configured. */
+.content-panel footer {
+	margin-top: 0;
+}
+
+.content-panel footer .meta:empty {
+	display: none;
+}
+
+/* ------------------------------------------------------------- Sections */
+
+.sl-markdown-content .bison-section {
+	margin: 0;
+	padding: 90px 0;
+}
+
+.sl-markdown-content .bison-section:not(:last-child) {
+	border-bottom: var(--scalar-hairline);
+}
+
+.bison-row {
+	display: flex;
+	flex-direction: column;
+	gap: 24px;
+}
+
+.sl-markdown-content .bison-row + .bison-row {
+	margin-top: 48px;
+}
+
+.sl-markdown-content .bison-col {
+	min-width: 0;
+	margin: 0;
+}
+
+.sl-markdown-content .bison-col > :first-child {
+	margin-top: 0;
+}
+
+.bison-aside {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.sl-markdown-content .bison-aside > * {
+	margin: 0;
+}
+
+@container bison-main (width > 900px) {
+	.bison-row {
+		flex-direction: row;
+		gap: 48px;
+	}
+
+	.bison-col {
+		flex: 1;
+	}
+
+	/* A row without code keeps its prose in the left column. */
+	.bison-col:only-child {
+		flex: 0 1 calc(50% - 24px);
+	}
+
+	.bison-aside {
+		align-self: flex-start;
+	}
+
+	/* Like Scalar, the right column starts under the heading line, level
+	   with the first block of prose. Offsets are each heading's height. */
+	.bison-row:has(> .bison-col > .bison-title) > .bison-aside {
+		margin-top: 41px;
+	}
+
+	.bison-row:has(> .bison-col > .level-h2) > .bison-aside {
+		margin-top: 35px;
+	}
+
+	.bison-row:has(> .bison-col > .level-h3) > .bison-aside {
+		margin-top: 30px;
+	}
+
+	/* Set only on columns short enough to fit the viewport. */
+	.bison-aside[data-sticky] {
+		position: sticky;
+		top: 24px;
+	}
+
+	.content-panel footer {
+		max-width: calc(50% - 24px);
+	}
+}
+
+@container bison-main (width <= 900px) {
+	.content-panel {
+		padding-inline: 24px;
+	}
+
+	.sl-markdown-content .bison-section {
+		padding-block: 48px;
+	}
+}
+
+@container bison-main (width <= 600px) {
+	.content-panel {
+		padding-inline: 16px;
+	}
+}
+
+/* ----------------------------------------------------------- Page title */
+
+.sl-markdown-content .bison-title {
+	margin: 0 0 6px;
+	font-size: 24px;
+	font-weight: 600;
+	line-height: 34.8px;
+	letter-spacing: normal;
+	color: var(--scalar-color-1);
+}
+
+.sl-markdown-content .bison-title + * {
+	margin-top: 0;
+}
+
+/* The link under the intro title, like Scalar's document download link. */
+.sl-markdown-content .bison-title-link {
+	font-size: 16px;
+	font-weight: 500;
+	line-height: 26px;
+}
+
+/* ---------------------------------------------------------------- Cards */
+
+.bison-card__header {
+	display: flex;
+	align-items: center;
+	height: 32px;
+	padding: 0 12px;
+	border: var(--scalar-hairline);
+	border-bottom: 0;
+	border-radius: var(--scalar-radius-xl) var(--scalar-radius-xl) 0 0;
+	background: var(--scalar-background-2);
+	color: var(--scalar-color-1);
+	font-size: 14px;
+	font-weight: 500;
+}
+
+/* Content styles skip .not-content, so the card sets its own. */
+.bison-card__body {
+	padding: 10px 12px;
+	overflow-x: auto;
+	border: var(--scalar-hairline);
+	border-top: 0;
+	border-radius: 0 0 var(--scalar-radius-xl) var(--scalar-radius-xl);
+	background: var(--scalar-background-1);
+	font-family: var(--scalar-font-code);
+	font-size: 14px;
+	line-height: 1.55;
+	list-style: none;
+}
+
+.bison-card a {
+	display: flex;
+	gap: 12px;
+	white-space: nowrap;
+	color: var(--scalar-color-1);
+	text-decoration: none;
+}
+
+.bison-card a:is(:hover, :focus-visible) > :last-child {
+	text-decoration: underline;
+}
+
+.bison-card__method {
+	min-width: 62px;
+	text-align: right;
+	color: var(--scalar-color-green);
+}

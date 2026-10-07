@@ -1,0 +1,74 @@
+---
+import { Image } from 'astro:assets';
+import Search from '@astrojs/starlight/components/Search.astro';
+import logo from '../assets/bison-logo-white.png';
+
+const { hasSidebar, siteTitle, siteTitleHref } = Astro.locals.starlightRoute;
+---
+
+{/* A slim top bar on small screens. With a sidebar, search lives there instead: one Search per page, one Ctrl/Cmd+K. */}
+<div class="bison-bar">
+	<a href={siteTitleHref}>
+		<Image src={logo} alt={siteTitle} width={32} height={32} densities={[1, 2]} loading="eager" />
+	</a>
+	{!hasSidebar && <Search />}
+</div>
+
+<style>
+	:global(:root) {
+		--sl-nav-height: 50px;
+	}
+
+	/* Desktop: no top bar; the sidebar runs from the top of the viewport. */
+	@media (min-width: 50rem) {
+		:global(:root[data-has-sidebar]) {
+			--sl-nav-height: 0px;
+		}
+
+		:global([data-has-sidebar] header.header) {
+			display: none;
+		}
+	}
+
+	:global(header.header) {
+		padding-block: 0;
+		border-bottom: var(--scalar-hairline);
+		background: var(--scalar-background-1);
+	}
+
+	.bison-bar {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 16px;
+		height: 100%;
+	}
+
+	.bison-bar :global(img) {
+		display: block;
+		width: auto;
+		height: 32px;
+	}
+
+	:global([data-theme='light']) .bison-bar :global(img) {
+		filter: invert(1);
+	}
+
+	/* Starlight's menu toggle (rendered by PageFrame), made flat. */
+	:global(starlight-menu-button button) {
+		border-radius: var(--scalar-radius);
+		background: none;
+		color: var(--scalar-color-1);
+		box-shadow: none;
+	}
+
+	:global(starlight-menu-button button:hover),
+	:global(starlight-menu-button[aria-expanded='true'] button) {
+		background: var(--scalar-background-2);
+	}
+
+	:global(starlight-menu-button button:focus-visible) {
+		outline: 2px solid var(--scalar-color-1);
+		outline-offset: 2px;
+	}
+</style>

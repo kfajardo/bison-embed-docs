@@ -1,0 +1,21 @@
+---
+// Renders nothing: the reference has no right-hand table of contents. The styles give
+// the space Starlight reserves for one back to the page.
+---
+
+<style>
+	:global(:root) {
+		--sl-mobile-toc-height: 0rem;
+	}
+
+	:global(.right-sidebar-container) {
+		display: none;
+	}
+
+	@media (min-width: 72rem) {
+		:global([data-has-sidebar][data-has-toc] .main-pane) {
+			--sl-content-margin-inline: inherit;
+			width: 100%;
+		}
+	}
+</style>
